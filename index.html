@@ -61,8 +61,8 @@
           <div class="flex items-center gap-2">
             <p class="text-xs text-indigo-200">學生個人專屬查詢 · 獎勵兌換</p>
             <!-- 雲端試算表連線狀態燈 -->
-            <span id="syncStatusBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/60 text-indigo-100">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 本地就緒
+            <span id="syncStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/70 text-indigo-100 transition shadow-inner">
+              <span class="w-2 h-2 rounded-full bg-amber-300 animate-pulse"></span> 連線中...
             </span>
           </div>
         </div>
@@ -72,8 +72,8 @@
       <div class="flex items-center space-x-2 text-sm">
         <!-- 教師導航按鈕 (學生掃碼模式下預設隱藏) -->
         <div id="teacherNavControls" class="flex items-center space-x-2 bg-indigo-700/50 p-1 rounded-xl">
-          <button id="syncNowBtn" onclick="fetchFromGoogleSheets(true)" class="px-2.5 py-1.5 rounded-lg font-medium text-indigo-200 hover:text-white hover:bg-indigo-600/60 transition flex items-center gap-1 text-xs" title="手動向 Google 試算表同步資料">
-            <i class="fa-solid fa-arrows-rotate" id="syncSpinner"></i> 同步
+          <button id="syncNowBtn" onclick="fetchFromGoogleSheets(true)" class="px-2.5 py-1.5 rounded-lg font-medium text-indigo-200 hover:text-white hover:bg-indigo-600/60 transition flex items-center gap-1.5 text-xs" title="手動向 Google 試算表同步最新資料">
+            <i class="fa-solid fa-arrows-rotate" id="syncSpinner"></i> 同步試算表
           </button>
           <button id="navStudentBtn" onclick="switchView('student')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm">
             <i class="fa-solid fa-mobile-screen"></i> 學生卡片
@@ -99,9 +99,9 @@
 
   <!-- 訊息提示視窗 (Toast) -->
   <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
-    <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center space-x-3 border border-slate-700">
-      <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
-      <span id="toastMsg" class="text-sm font-medium">訊息通知</span>
+    <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center space-x-3 border border-slate-700 max-w-sm">
+      <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg flex-shrink-0"></i>
+      <span id="toastMsg" class="text-xs sm:text-sm font-medium leading-tight">訊息通知</span>
     </div>
   </div>
 
@@ -154,7 +154,7 @@
               目前累積學習點數
             </span>
             <div class="flex items-center justify-center my-3">
-              <span id="cardPoints" class="text-5xl font-black text-indigo-600 tracking-tight">48</span>
+              <span id="cardPoints" class="text-5xl font-black text-indigo-600 tracking-tight">0</span>
               <span class="text-lg font-bold text-slate-400 ml-2 self-end mb-1">PTS</span>
             </div>
             <!-- 等級徽章與稱號 -->
@@ -171,7 +171,7 @@
               <span id="cardProgressText">距離下一階段還差 2 點</span>
             </div>
             <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200">
-              <div id="cardProgressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" style="width: 90%;"></div>
+              <div id="cardProgressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" style="width: 50%;"></div>
             </div>
           </div>
 
@@ -224,7 +224,7 @@
           <p class="text-xs text-slate-500 mt-0.5">已串接 Google 試算表 Web API，可在試算表打分數後一鍵同步更新</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <button onclick="fetchFromGoogleSheets(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 border border-indigo-200">
+          <button onclick="fetchFromGoogleSheets(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 border border-indigo-200 shadow-sm">
             <i class="fa-solid fa-cloud-arrow-down"></i> 同步 Google 試算表
           </button>
           <button onclick="openChangePasswordModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
@@ -697,7 +697,7 @@
     // 預設教師密碼
     const DEFAULT_ADMIN_PASSWORD = "8888";
 
-    // 預設範例學生名單（保證首次載入立即顯示，絕不卡在載入中）
+    // 預設範例學生名單（確保首次載入立即顯示，絕不卡在載入中）
     const DEFAULT_STUDENTS = [
       {
         id: "S001",
@@ -800,12 +800,10 @@
     let isStudentPersonalMode = false;
     let tempSelectedAvatar = '🌟';
 
-    // 立即啟動主程式（確保即使在各類 iframe 或延遲環境下皆能 100% 即時渲染）
+    // 立即啟動主程式
     function initApp() {
-      // 1. 先從本地快取或預設範例立即載入
       loadSystemData();
       
-      // 2. 解析網址參數 (例如 ?sid=S001 或 ?id=1)
       try {
         const params = new URLSearchParams(window.location.search);
         const urlSid = params.get('sid') || params.get('id');
@@ -829,13 +827,12 @@
         if (students.length > 0) currentStudentId = students[0].id;
       }
 
-      // 3. 立即強制渲染前端所有畫面，消除卡在「載入中」
       refreshAllViews();
 
-      // 4. 背景嘗試向 Google 試算表 Web API 同步最新資料
+      // 背景自動同步 Google 試算表
       setTimeout(() => {
         fetchFromGoogleSheets(false);
-      }, 200);
+      }, 300);
     }
 
     if (document.readyState === 'loading') {
@@ -855,6 +852,7 @@
       if (studentRefreshBtn) studentRefreshBtn.classList.remove('hidden');
     }
 
+    // 連線 Google 試算表取得最新資料
     async function fetchFromGoogleSheets(showUserFeedback = false) {
       if (isFetchingGoogleSheet) return;
       isFetchingGoogleSheet = true;
@@ -863,19 +861,24 @@
       const statusBadge = document.getElementById('syncStatusBadge');
       if (spinner) spinner.classList.add('animate-spin');
       if (statusBadge) {
-        statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/70 text-white";
-        statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> 同步中...`;
+        statusBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500 text-white shadow-sm";
+        statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-white animate-ping"></span> 連線中...`;
       }
 
       if (showUserFeedback) {
-        showToast("正在連線 Google 試算表讀取最新積分...", "info");
+        showToast("正在連線 Google 試算表讀取最新資料...", "info");
       }
 
       try {
+        // 給予 15 秒超時保護（因 GAS 冷啟動喚醒通常需要 5~8 秒）
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 6000); // 6秒超時保護
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const response = await fetch(GAS_API_URL, {
+        // 加上時間戳記防瀏覽器快取
+        const separator = GAS_API_URL.includes('?') ? '&' : '?';
+        const targetFetchUrl = `${GAS_API_URL}${separator}_t=${Date.now()}`;
+
+        const response = await fetch(targetFetchUrl, {
           method: 'GET',
           redirect: 'follow',
           signal: controller.signal
@@ -884,7 +887,7 @@
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`HTTP 錯誤: ${response.status}`);
+          throw new Error(`伺服器回應狀態碼: ${response.status}`);
         }
 
         const data = await response.json();
@@ -896,24 +899,32 @@
           incomingStudents = data;
         } else if (data && typeof data === 'object') {
           if (Array.isArray(data.students)) incomingStudents = data.students;
+          else if (Array.isArray(data.data)) incomingStudents = data.data;
+          
           if (Array.isArray(data.rewards)) incomingRewards = data.rewards;
           if (data.adminPassword) adminPassword = String(data.adminPassword);
         }
 
         if (incomingStudents && incomingStudents.length > 0) {
           students = incomingStudents.map((st, idx) => {
-            const oldMatch = students.find(s => String(s.id).trim() === String(st.id || st.studentId || st['學號'] || '').trim());
-            const cloudAvatar = st.avatar || st['頭像'] || st['Avatar'] || '';
-            // 優先使用雲端頭像，若雲端為空則保留本地學生已自訂的頭像
-            const effectiveAvatar = (cloudAvatar && cloudAvatar.trim() !== '') ? cloudAvatar : (oldMatch?.avatar || "🌟");
+            const rawId = String(st.id || st.studentId || st['學號'] || st.ID || st.Id || `S${String(idx+1).padStart(3,'0')}`).trim();
+            const oldMatch = students.find(s => String(s.id).trim().toLowerCase() === rawId.toLowerCase());
+            const cloudAvatar = st.avatar || st['頭像'] || st.Avatar || '';
+            
+            // 雲端若為有效頭像則採用；若為空則優先保留本機已自訂的頭像
+            const localAvatar = oldMatch?.avatar;
+            const effectiveAvatar = (cloudAvatar && cloudAvatar.trim() !== '' && cloudAvatar !== '🌟') 
+              ? cloudAvatar 
+              : (localAvatar || cloudAvatar || "🌟");
+
             return {
-              id: String(st.id || st.studentId || st['學號'] || `S${String(idx+1).padStart(3,'0')}`).trim(),
-              seat: Number(st.seat || st.seatNumber || st['座號'] || idx + 1),
-              name: String(st.name || st.studentName || st['姓名'] || `學生${idx+1}`),
+              id: rawId,
+              seat: Number(st.seat || st.seatNumber || st['座號'] || st.Seat || idx + 1),
+              name: String(st.name || st.studentName || st['姓名'] || st.Name || `學生${idx+1}`),
               avatar: effectiveAvatar,
-              points: Number(st.points || st.score || st['積分'] || st['點數'] || 0),
+              points: Number(st.points || st.score || st['積分'] || st['點數'] || st.Points || 0),
               history: st.history || oldMatch?.history || [
-                { time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), reason: "試算表資料同步", delta: Number(st.points || 0) }
+                { time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), reason: "試算表同步", delta: Number(st.points || 0) }
               ]
             };
           });
@@ -937,21 +948,21 @@
         refreshAllViews();
 
         if (statusBadge) {
-          statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/80 text-white";
-          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white"></span> 試算表已同步`;
+          statusBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500 text-white shadow-sm";
+          statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-white"></span> 試算表已連線`;
         }
 
         if (showUserFeedback) {
-          showToast("已成功同步最新積分與獎勵！", "success");
+          showToast("已成功連線並同步 Google 試算表最新積分！✨", "success");
         }
       } catch (err) {
-        console.warn("Google Apps Script 同步離線或超時，使用本地資料:", err);
+        console.warn("Google Apps Script 連線失敗或離線:", err);
         if (statusBadge) {
-          statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/60 text-indigo-100";
-          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-300"></span> 本地就緒`;
+          statusBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-500/80 text-white";
+          statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-300"></span> 本地離線模式`;
         }
         if (showUserFeedback) {
-          showToast("已顯示最新本地存摺資料", "info");
+          showToast("試算表連線超時，請檢查 GAS 權限是否設為所有人", "error");
         }
       } finally {
         isFetchingGoogleSheet = false;
@@ -964,28 +975,25 @@
         const storedStudentsStr = localStorage.getItem('class_points_students');
         if (storedStudentsStr) {
           students = JSON.parse(storedStudentsStr);
+        } else if (window.__studentDataStore) {
+          students = window.__studentDataStore;
         } else {
           students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
-          localStorage.setItem('class_points_students', JSON.stringify(students));
         }
 
         const storedRewardsStr = localStorage.getItem('class_points_rewards');
         if (storedRewardsStr) {
           rewards = JSON.parse(storedRewardsStr);
+        } else if (window.__rewardsStore) {
+          rewards = window.__rewardsStore;
         } else {
           rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
-          localStorage.setItem('class_points_rewards', JSON.stringify(rewards));
         }
 
-        const storedPwd = localStorage.getItem('class_points_admin_pwd');
-        if (storedPwd) {
-          adminPassword = storedPwd;
-        } else {
-          adminPassword = DEFAULT_ADMIN_PASSWORD;
-          localStorage.setItem('class_points_admin_pwd', adminPassword);
-        }
+        const storedPwd = localStorage.getItem('class_points_admin_pwd') || window.__adminPwdStore;
+        adminPassword = storedPwd || DEFAULT_ADMIN_PASSWORD;
       } catch (e) {
-        console.warn("LocalStorage access fallback:", e);
+        console.warn("載入本地快取資料失敗，使用預設值:", e);
         students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
         rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
         adminPassword = DEFAULT_ADMIN_PASSWORD;
@@ -993,19 +1001,16 @@
     }
 
     function saveSystemData() {
+      window.__studentDataStore = students;
+      window.__rewardsStore = rewards;
+      window.__adminPwdStore = adminPassword;
       try {
         localStorage.setItem('class_points_students', JSON.stringify(students));
         localStorage.setItem('class_points_rewards', JSON.stringify(rewards));
         localStorage.setItem('class_points_admin_pwd', adminPassword);
       } catch (e) {
-        console.warn("LocalStorage save error:", e);
+        console.warn("LocalStorage 寫入受限:", e);
       }
-    }
-
-    function saveSystemData() {
-      window.__studentDataStore = students;
-      window.__rewardsStore = rewards;
-      window.__adminPwdStore = adminPassword;
     }
 
     function requestAdminAccess(targetView) {
@@ -1832,7 +1837,6 @@
         const img = new Image();
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          // 壓縮至適當大小以利存入試算表
           const size = 120;
           canvas.width = size;
           canvas.height = size;
@@ -1844,7 +1848,6 @@
 
           ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
           
-          // 80% 品質的 JPEG 縮圖，節省試算表儲存空間
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
           tempSelectedAvatar = compressedDataUrl;
           updateAvatarPreview(compressedDataUrl);
@@ -1861,14 +1864,12 @@
       if (!student) return;
 
       student.avatar = tempSelectedAvatar;
-      // 1. 先立即永久保存在手機/瀏覽器的 LocalStorage
       saveSystemData();
       renderStudentCard();
       renderAdminTable();
       closeStudentAvatarModal();
-      showToast("個人頭像已在本地儲存！正在同步至雲端...", "info");
+      showToast("個人頭像已儲存！正在同步至 Google 試算表...", "info");
 
-      // 2. 透過避免觸發 CORS OPTIONS 預檢的方式傳送至 Google 試算表
       try {
         const payload = {
           action: "updateAvatar",
@@ -1876,7 +1877,6 @@
           avatar: student.avatar
         };
 
-        // 使用 text/plain 可以避開瀏覽器的 CORS 預檢攔截 (OPTIONS 405 error)
         await fetch(GAS_API_URL, {
           method: 'POST',
           headers: {
@@ -1888,7 +1888,7 @@
 
         showToast("個人頭像已成功同步保存至雲端資料庫！✨", "success");
       } catch (cloudErr) {
-        console.warn("雲端同步有延遲，但本地已永久保存:", cloudErr);
+        console.warn("雲端同步延遲，但本地已永久保存:", cloudErr);
         showToast("頭像已成功儲存在此裝置！", "success");
       }
     }
@@ -1945,11 +1945,11 @@
       toastMsg.textContent = msg;
 
       if (type === "success") {
-        toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+        toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg flex-shrink-0";
       } else if (type === "error") {
-        toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-lg";
+        toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-lg flex-shrink-0";
       } else {
-        toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-lg";
+        toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-lg flex-shrink-0";
       }
 
       toast.classList.remove('translate-y-24', 'opacity-0');
@@ -1958,7 +1958,7 @@
       setTimeout(() => {
         toast.classList.remove('translate-y-0', 'opacity-100');
         toast.classList.add('translate-y-24', 'opacity-0');
-      }, 3000);
+      }, 3500);
     }
   </script>
 </body>
