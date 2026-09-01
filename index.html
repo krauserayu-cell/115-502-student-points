@@ -1403,6 +1403,49 @@
       switchView('student');
     }
 
+    // 雲端同步單一學生積分至 Google 試算表
+    async function syncPointsToGoogleSheets(studentId, currentPoints) {
+      try {
+        const payload = {
+          action: "updatePoints",
+          id: studentId,
+          points: currentPoints
+        };
+
+        await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload),
+          redirect: 'follow'
+        });
+      } catch (err) {
+        console.warn("試算表積分同步背景執行中:", err);
+      }
+    }
+
+    // 雲端同步全班積分至 Google 試算表
+    async function syncAllPointsToGoogleSheets() {
+      try {
+        const payload = {
+          action: "batchUpdatePoints",
+          students: students.map(s => ({ id: s.id, points: s.points }))
+        };
+
+        await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload),
+          redirect: 'follow'
+        });
+      } catch (err) {
+        console.warn("全班試算表積分同步背景執行中:", err);
+      }
+    }
+
     function quickAddPoints(id, delta, reason) {
       const student = students.find(s => s.id === id);
       if (!student) return;
@@ -1418,7 +1461,10 @@
       renderAdminTable();
       updateStudentSelector();
       if (currentStudentId === id) renderStudentCard();
-      showToast(`${student.name} ${delta > 0 ? '+' + delta : delta} 點 (${reason})`, "success");
+      showToast(`${student.name} ${delta > 0 ? '+' + delta : delta} 點 (${reason})，已同步雲端`, "success");
+
+      // 即時同步至 Google 試算表
+      syncPointsToGoogleSheets(student.id, student.points);
     }
 
     function quickBatchAdd(reason, amount) {
@@ -1434,7 +1480,10 @@
       renderAdminTable();
       updateStudentSelector();
       renderStudentCard();
-      showToast(`全班已批量加上 ${amount} 點 (${reason})`, "success");
+      showToast(`全班已批量加上 ${amount} 點 (${reason})，已同步雲端`, "success");
+
+      // 批量同步至 Google 試算表
+      syncAllPointsToGoogleSheets();
     }
 
     function renderRewardsManager() {
