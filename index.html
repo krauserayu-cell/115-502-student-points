@@ -590,6 +590,37 @@
 
   <!-- ================= 系統邏輯 Javascript ================= -->
   <script>
+// 替換為步驟 3 取得的 Google Apps Script 網址
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbx3_Jc6sFw8vptdKEW7ACRZ3g-emz6tTJnj68CzFqtWT9GjMos4AI_Lek9Wy9EUkvDH/exec";
+
+// 從 Google 試算表同步資料的函式
+async function fetchFromGoogleSheets() {
+  try {
+    showToast("正在從 Google 試算表同步資料...", "info");
+    const response = await fetch(GAS_API_URL);
+    const data = await response.json();
+
+    if (data.status === "success") {
+      // 將試算表的最新學生與獎勵清單套入系統
+      students = data.students;
+      if (data.rewards && data.rewards.length > 0) {
+        rewards = data.rewards;
+      }
+      refreshAllViews();
+      showToast("已成功同步 Google 試算表最新積分！", "success");
+    }
+  } catch (error) {
+    console.error("同步失敗:", error);
+    showToast("無法連接 Google 試算表，顯示離線暫存資料", "error");
+  }
+}
+
+// 網頁開啟時自動執行同步
+window.onload = function() {
+  loadSystemData(); // 先載入本機預設或暫存
+  fetchFromGoogleSheets(); // 自動向 Google 試算表拉取最新分數！
+};
+    
     // 預設教師密碼
     const DEFAULT_ADMIN_PASSWORD = "8888";
 
