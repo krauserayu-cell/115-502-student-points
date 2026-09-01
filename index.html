@@ -226,7 +226,13 @@
             </div>
           </div>
 
-          <h2 id="cardStudentName" class="text-2xl font-black tracking-tight drop-shadow-sm">王小明</h2>
+          <!-- 學生姓名與幹部頭銜 -->
+          <div class="flex items-center justify-center gap-2 flex-wrap">
+            <span id="cardStudentRole" class="inline-flex items-center gap-1 bg-white/90 text-amber-900 text-xs font-black px-2.5 py-0.5 rounded-full shadow-sm border border-amber-200">
+              👑 班長
+            </span>
+            <h2 id="cardStudentName" class="text-2xl font-black tracking-tight drop-shadow-sm">王小明</h2>
+          </div>
           <p id="cardStudentId" class="text-xs text-amber-100 mt-1 font-mono font-bold">專屬代碼: S001</p>
         </div>
 
@@ -385,6 +391,7 @@
                 <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase font-bold text-slate-500">
                   <th class="py-3 px-4">座號 / 學號</th>
                   <th class="py-3 px-4">學生姓名</th>
+                  <th class="py-3 px-4">班級幹部/職稱</th>
                   <th class="py-3 px-4">老師專屬歡迎詞/勉勵</th>
                   <th class="py-3 px-4 text-center">積分</th>
                   <th class="py-3 px-4 text-center">快速調整</th>
@@ -639,7 +646,7 @@
 
   <!-- ================= 模態視窗: 新增/編輯學生 ================= -->
   <div id="studentModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center mb-5">
         <h3 id="modalTitle" class="text-lg font-bold text-slate-800">新增學生</h3>
         <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600 p-1">
@@ -647,7 +654,7 @@
         </button>
       </div>
 
-      <form id="studentForm" onsubmit="saveStudent(event)" class="space-y-4">
+      <form id="studentForm" onsubmit="saveStudent(event)" class="space-y-3.5">
         <input type="hidden" id="editOriginalId">
 
         <div class="grid grid-cols-2 gap-3">
@@ -664,6 +671,25 @@
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">學生姓名 *</label>
           <input type="text" id="inputName" required placeholder="例如: 王小明" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <!-- 班級幹部職務設定 -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">班級幹部職稱</label>
+          <input type="text" id="inputRole" placeholder="例如: 班長、風紀股長、小組長、無..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <div class="flex items-center gap-1.5 flex-wrap mt-1.5">
+            <span class="text-[10px] text-slate-400 font-bold">快速套用：</span>
+            <button type="button" onclick="setQuickRole('👑 班長')" class="text-[10px] bg-amber-50 hover:bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-200">👑 班長</button>
+            <button type="button" onclick="setQuickRole('⭐ 副班長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded">⭐ 副班長</button>
+            <button type="button" onclick="setQuickRole('🛡️ 風紀股長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded">🛡️ 風紀</button>
+            <button type="button" onclick="setQuickRole('📚 學藝股長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded">📚 學藝</button>
+            <button type="button" onclick="setQuickRole('🌿 衛生股長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded">🌿 衛生</button>
+            <button type="button" onclick="setQuickRole('⚽ 體育股長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded">⚽ 體育</button>
+            <button type="button" onclick="setQuickRole('💰 總務股長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded">💰 總務</button>
+            <button type="button" onclick="setQuickRole('💻 資訊股長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded">💻 資訊</button>
+            <button type="button" onclick="setQuickRole('🌱 小組長')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded">🌱 小組長</button>
+            <button type="button" onclick="setQuickRole('')" class="text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-600 px-2 py-0.5 rounded">無</button>
+          </div>
         </div>
 
         <div>
@@ -967,12 +993,13 @@
       }
     ];
 
-    // 預設範例學生名單（包含預設向日葵班歡迎勉勵詞）
+    // 預設範例學生名單（包含幹部職務與預設向日葵班歡迎勉勵詞）
     const DEFAULT_STUDENTS = [
       {
         id: "S001",
         seat: 1,
         name: "王小明",
+        role: "👑 班長",
         avatar: "🌟",
         points: 48,
         welcomeMessage: "🌻 歡迎回到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！",
@@ -986,6 +1013,7 @@
         id: "S002",
         seat: 2,
         name: "李美華",
+        role: "⭐ 副班長",
         avatar: "🦄",
         points: 65,
         welcomeMessage: "🦄 英文朗讀很出色！期待你在課堂上更多精彩分享！",
@@ -999,6 +1027,7 @@
         id: "S003",
         seat: 3,
         name: "陳冠宇",
+        role: "⚽ 體育股長",
         avatar: "🚀",
         points: 18,
         welcomeMessage: "🚀 體育團隊合作非常棒，課業上也繼續衝刺升級吧！",
@@ -1011,6 +1040,7 @@
         id: "S004",
         seat: 4,
         name: "張雅婷",
+        role: "📚 學藝股長",
         avatar: "🦁",
         points: 82,
         welcomeMessage: "👑 自主閱讀達標，是向日葵班的榜樣，繼續保持熱情！",
@@ -1023,6 +1053,7 @@
         id: "S005",
         seat: 5,
         name: "林哲瑋",
+        role: "🌿 衛生股長",
         avatar: "🎨",
         points: 32,
         welcomeMessage: "🎨 美術作品令人驚艷，期待你更多精彩的創作！",
@@ -1194,10 +1225,12 @@
             const cloudAvatar = String(st.avatar || st['頭像'] || st.Avatar || '').trim();
             const cloudPoints = Number(st.points || st.score || st['積分'] || st['點數'] || st.Points || 0);
             const cloudWelcome = st.welcomeMessage || st['歡迎詞'] || st['鼓勵話語'] || st['勉勵詞'] || st['留言'] || st.welcome || '';
+            const cloudRole = st.role || st['幹部'] || st['職稱'] || st['職務'] || st.cadre || '';
 
             const lastLocalPointEdit = localModifiedTracker[rawId + '_points'] || 0;
             const lastLocalAvatarEdit = localModifiedTracker[rawId + '_avatar'] || 0;
             const lastLocalWelcomeEdit = localModifiedTracker[rawId + '_welcome'] || 0;
+            const lastLocalRoleEdit = localModifiedTracker[rawId + '_role'] || 0;
 
             let finalPoints = cloudPoints;
             if (oldMatch && (nowTime - lastLocalPointEdit < 30000)) {
@@ -1216,10 +1249,16 @@
               finalWelcome = oldMatch.welcomeMessage;
             }
 
+            let finalRole = (cloudRole && cloudRole.trim() !== '') ? cloudRole : (oldMatch?.role || "");
+            if (oldMatch && (nowTime - lastLocalRoleEdit < 60000)) {
+              finalRole = oldMatch.role || "";
+            }
+
             return {
               id: rawId,
               seat: Number(st.seat || st.seatNumber || st['座號'] || st.Seat || idx + 1),
               name: String(st.name || st.studentName || st['姓名'] || st.Name || `學生${idx+1}`),
+              role: finalRole,
               avatar: finalAvatar,
               points: finalPoints,
               welcomeMessage: finalWelcome,
@@ -1341,9 +1380,7 @@
       } catch (e) {
         console.warn("LocalStorage 寫入受限:", e);
       }
-    }
-
-    // 核心資料雲端發送器 (支援點數、頭像、歡迎勉勵詞、行事曆事件)
+    // 核心資料雲端發送器 (支援點數、頭像、歡迎勉勵詞、幹部職稱、行事曆事件)
     async function sendDataToGoogleSheets(payload) {
       try {
         fetch(GAS_API_URL, {
@@ -1355,9 +1392,11 @@
           body: JSON.stringify(payload)
         }).catch(err => console.warn("POST 發送略過:", err));
 
-        if (payload.action === 'updatePoints' || payload.action === 'updateWelcomeMessage' || (payload.action === 'updateAvatar' && payload.avatar && payload.avatar.length < 50)) {
+        if (payload.action === 'updatePoints' || payload.action === 'updateWelcomeMessage' || payload.action === 'updateRole' || payload.action === 'saveStudent' || (payload.action === 'updateAvatar' && payload.avatar && payload.avatar.length < 50)) {
           const separator = GAS_API_URL.includes('?') ? '&' : '?';
           let queryUrl = `${GAS_API_URL}${separator}action=${encodeURIComponent(payload.action)}&id=${encodeURIComponent(payload.id || '')}&seat=${encodeURIComponent(payload.seat || '')}&_t=${Date.now()}`;
+          if (payload.name !== undefined) queryUrl += `&name=${encodeURIComponent(payload.name)}`;
+          if (payload.role !== undefined) queryUrl += `&role=${encodeURIComponent(payload.role)}`;
           if (payload.points !== undefined) queryUrl += `&points=${encodeURIComponent(payload.points)}`;
           if (payload.avatar !== undefined) queryUrl += `&avatar=${encodeURIComponent(payload.avatar)}`;
           if (payload.welcomeMessage !== undefined) queryUrl += `&welcomeMessage=${encodeURIComponent(payload.welcomeMessage)}`;
@@ -1564,7 +1603,8 @@
       students.sort((a, b) => a.seat - b.seat).forEach(st => {
         const opt = document.createElement('option');
         opt.value = st.id;
-        opt.textContent = `[${String(st.seat).padStart(2, '0')} 號] ${st.name} (${st.points} 分)`;
+        const roleTag = st.role ? ` [${st.role}]` : '';
+        opt.textContent = `[${String(st.seat).padStart(2, '0')} 號] ${st.name}${roleTag} (${st.points} 分)`;
         if (st.id === currentStudentId) {
           opt.selected = true;
         }
@@ -1578,11 +1618,11 @@
     }
 
     function getStudentLevel(points) {
-      if (points >= 10000) return { name: "傳奇榮譽大師 👑", next: 15000, max: 15000, prev: 100 };
-      if (points >= 5000) return { name: "鑽石探險家 💎", next: 10000, max: 10000, prev: 50 };
-      if (points >= 3000) return { name: "黃金勇者 ⚔️", next: 5000, max: 5000, prev: 30 };
-      if (points >= 1000) return { name: "進階小達人 🌿", next: 3000, max: 3000, prev: 15 };
-      return { name: "初階探索者 🌟", next: 1000, max: 1000, prev: 0 };
+      if (points >= 100) return { name: "傳奇榮譽大師 👑", next: 150, max: 150, prev: 100 };
+      if (points >= 50) return { name: "鑽石探險家 💎", next: 100, max: 100, prev: 50 };
+      if (points >= 30) return { name: "黃金勇者 ⚔️", next: 50, max: 50, prev: 30 };
+      if (points >= 15) return { name: "進階小達人 🌿", next: 30, max: 30, prev: 15 };
+      return { name: "初階探索者 🌟", next: 15, max: 15, prev: 0 };
     }
 
     // ================= ⏰ 首頁倒數與行事曆渲染邏輯 =================
@@ -1878,6 +1918,17 @@
         }
       }
 
+      // 班級幹部標籤
+      const cardRoleEl = document.getElementById('cardStudentRole');
+      if (cardRoleEl) {
+        if (student.role && student.role.trim() !== '') {
+          cardRoleEl.textContent = student.role;
+          cardRoleEl.classList.remove('hidden');
+        } else {
+          cardRoleEl.classList.add('hidden');
+        }
+      }
+
       const nameEl = document.getElementById('cardStudentName');
       const idEl = document.getElementById('cardStudentId');
       const pointsEl = document.getElementById('cardPoints');
@@ -2004,11 +2055,12 @@
       const filtered = students.filter(s => {
         return s.name.toLowerCase().includes(keyword) ||
                String(s.seat).includes(keyword) ||
+               (s.role && s.role.toLowerCase().includes(keyword)) ||
                s.id.toLowerCase().includes(keyword);
       }).sort((a, b) => a.seat - b.seat);
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400 text-xs">查無相符的學生資料</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400 text-xs">查無相符的學生資料</td></tr>`;
         return;
       }
 
@@ -2019,6 +2071,11 @@
         let avatarDisplay = `<span class="text-lg">${st.avatar || '🌟'}</span>`;
         if (st.avatar && (st.avatar.startsWith('data:image/') || st.avatar.startsWith('http'))) {
           avatarDisplay = `<img src="${st.avatar}" class="w-7 h-7 rounded-full object-cover border border-slate-200">`;
+        }
+
+        let roleDisplay = `<span class="text-xs text-slate-400 font-medium">一般同學</span>`;
+        if (st.role && st.role.trim() !== '') {
+          roleDisplay = `<span class="inline-flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-200/80 shadow-2xs">${st.role}</span>`;
         }
 
         tr.innerHTML = `
@@ -2034,7 +2091,10 @@
               <span class="font-bold text-slate-800">${st.name}</span>
             </div>
           </td>
-          <td class="py-3 px-4 max-w-[220px]">
+          <td class="py-3 px-4">
+            ${roleDisplay}
+          </td>
+          <td class="py-3 px-4 max-w-[200px]">
             <div class="flex items-center justify-between gap-1.5 bg-amber-50/70 hover:bg-amber-100/70 p-1.5 rounded-xl border border-amber-200/60 cursor-pointer transition" onclick="openWelcomeMessageModal('${st.id}')" title="點擊修改專屬勉勵詞">
               <p class="text-xs text-amber-950 truncate">${st.welcomeMessage || '🌻 歡迎來到向日葵班班！'}</p>
               <i class="fa-solid fa-pen text-[10px] text-amber-600 flex-shrink-0"></i>
@@ -2398,6 +2458,8 @@
           cardAvatarDisplay = `<div class="w-10 h-10 mx-auto mb-1 rounded-full overflow-hidden border border-amber-200"><img src="${st.avatar}" class="w-full h-full object-cover"></div>`;
         }
 
+        const roleTagHtml = st.role ? `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 border border-amber-200">${st.role}</span>` : '';
+
         card.innerHTML = `
           <div class="w-full flex justify-between items-center text-xs font-bold text-slate-500 mb-2">
             <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold">座號 ${String(st.seat).padStart(2,'0')}</span>
@@ -2405,6 +2467,7 @@
           </div>
 
           ${cardAvatarDisplay}
+          ${roleTagHtml}
           <h4 class="font-black text-slate-800 text-lg mb-1">${st.name}</h4>
           <p class="text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md mb-2 truncate max-w-[180px] font-medium">${st.welcomeMessage || '🌻 快樂學習、天天進步！'}</p>
           
@@ -2442,6 +2505,7 @@
       const seatEl = document.getElementById('inputSeat');
       const idEl = document.getElementById('inputId');
       const nameEl = document.getElementById('inputName');
+      const roleEl = document.getElementById('inputRole');
       const welcomeEl = document.getElementById('inputWelcomeMessage');
       const avatarEl = document.getElementById('inputAvatar');
       const ptsEl = document.getElementById('inputPoints');
@@ -2451,6 +2515,7 @@
       if (seatEl) seatEl.value = students.length + 1;
       if (idEl) idEl.value = `S${String(students.length + 1).padStart(3, '0')}`;
       if (nameEl) nameEl.value = "";
+      if (roleEl) roleEl.value = "";
       if (welcomeEl) welcomeEl.value = "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
       if (avatarEl) avatarEl.value = "🌟";
       if (ptsEl) ptsEl.value = "0";
@@ -2468,6 +2533,7 @@
       const seatEl = document.getElementById('inputSeat');
       const idEl = document.getElementById('inputId');
       const nameEl = document.getElementById('inputName');
+      const roleEl = document.getElementById('inputRole');
       const welcomeEl = document.getElementById('inputWelcomeMessage');
       const avatarEl = document.getElementById('inputAvatar');
       const ptsEl = document.getElementById('inputPoints');
@@ -2477,6 +2543,7 @@
       if (seatEl) seatEl.value = student.seat;
       if (idEl) idEl.value = student.id;
       if (nameEl) nameEl.value = student.name;
+      if (roleEl) roleEl.value = student.role || "";
       if (welcomeEl) welcomeEl.value = student.welcomeMessage || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
       if (avatarEl) avatarEl.value = student.avatar || "🌟";
       if (ptsEl) ptsEl.value = student.points;
@@ -2490,6 +2557,11 @@
       if (modal) modal.classList.add('hidden');
     }
 
+    function setQuickRole(roleText) {
+      const roleInput = document.getElementById('inputRole');
+      if (roleInput) roleInput.value = roleText;
+    }
+
     function selectEmoji(emoji) {
       const avatarInput = document.getElementById('inputAvatar');
       if (avatarInput) avatarInput.value = emoji;
@@ -2501,6 +2573,7 @@
       const seat = parseInt(document.getElementById('inputSeat').value, 10);
       const id = document.getElementById('inputId').value.trim();
       const name = document.getElementById('inputName').value.trim();
+      const role = document.getElementById('inputRole').value.trim();
       const welcomeMessage = document.getElementById('inputWelcomeMessage').value.trim() || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
       const avatar = document.getElementById('inputAvatar').value.trim() || "🌟";
       const points = parseInt(document.getElementById('inputPoints').value, 10) || 0;
@@ -2510,22 +2583,28 @@
         return;
       }
 
+      localModifiedTracker[id + '_role'] = Date.now();
+      localModifiedTracker[id + '_welcome'] = Date.now();
+      localModifiedTracker[id + '_points'] = Date.now();
+
       if (origId) {
         const index = students.findIndex(s => s.id === origId);
         if (index !== -1) {
           students[index].seat = seat;
           students[index].id = id;
           students[index].name = name;
+          students[index].role = role;
           students[index].welcomeMessage = welcomeMessage;
           students[index].avatar = avatar;
           students[index].points = points;
         }
-        showToast(`已更新 ${name} 的資料`, "success");
+        showToast(`已更新 ${name} 的資料並同步至試算表！`, "success");
       } else {
         students.push({
           id,
           seat,
           name,
+          role,
           avatar,
           points,
           welcomeMessage,
@@ -2535,169 +2614,23 @@
             delta: points
           }]
         });
-        showToast(`已新增學生 ${name}`, "success");
+        showToast(`已新增學生 ${name} 並同步至試算表！`, "success");
       }
 
       saveSystemData();
       closeStudentModal();
       refreshAllViews();
-    }
 
-    function deleteStudent(id) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
-
-      students = students.filter(s => s.id !== id);
-      if (currentStudentId === id && students.length > 0) {
-        currentStudentId = students[0].id;
-      }
-      saveSystemData();
-      refreshAllViews();
-      showToast(`學生 ${student.name} 已成功刪除`, "info");
-    }
-
-    function openPointModal(id) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
-
-      const idInput = document.getElementById('pointStudentId');
-      const nameSpan = document.getElementById('pointModalStudentName');
-      const ptsSpan = document.getElementById('pointModalCurrentPoints');
-      const changeInput = document.getElementById('pointChangeAmount');
-      const reasonInput = document.getElementById('pointReason');
-
-      if (idInput) idInput.value = student.id;
-      if (nameSpan) nameSpan.textContent = `${student.name} (#${student.seat})`;
-      if (ptsSpan) ptsSpan.textContent = student.points;
-      if (changeInput) changeInput.value = "";
-      if (reasonInput) reasonInput.value = "";
-
-      const modal = document.getElementById('pointModal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closePointModal() {
-      const modal = document.getElementById('pointModal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function setQuickReason(reason, amount) {
-      const reasonInput = document.getElementById('pointReason');
-      const amountInput = document.getElementById('pointChangeAmount');
-      if (reasonInput) reasonInput.value = reason;
-      if (amountInput) amountInput.value = amount;
-    }
-
-    function submitPointAdjustment(e) {
-      e.preventDefault();
-      const id = document.getElementById('pointStudentId').value;
-      const amount = parseInt(document.getElementById('pointChangeAmount').value, 10);
-      const reason = document.getElementById('pointReason').value.trim();
-
-      if (isNaN(amount) || !reason) {
-        showToast("請填寫有效的變更點數與原因", "error");
-        return;
-      }
-
-      quickAddPoints(id, amount, reason);
-      closePointModal();
-    }
-
-    function openStudentAvatarModal() {
-      const student = students.find(s => s.id === currentStudentId) || students[0];
-      if (!student) return;
-      
-      tempSelectedAvatar = student.avatar || '🌟';
-      updateAvatarPreview(tempSelectedAvatar);
-      const manualInput = document.getElementById('avatarManualInput');
-      if (manualInput) manualInput.value = '';
-      const modal = document.getElementById('avatarModal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeStudentAvatarModal() {
-      const modal = document.getElementById('avatarModal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function updateAvatarPreview(val) {
-      const previewSpan = document.getElementById('avatarPreviewSpan');
-      if (!previewSpan) return;
-
-      if (val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://')) {
-        previewSpan.innerHTML = `<img src="${val}" alt="預覽" class="w-full h-full object-cover">`;
-      } else {
-        previewSpan.innerHTML = val;
-      }
-    }
-
-    function setAvatarPreset(emoji) {
-      tempSelectedAvatar = emoji;
-      updateAvatarPreview(emoji);
-    }
-
-    function applyManualAvatarInput() {
-      const val = document.getElementById('avatarManualInput').value.trim();
-      if (val) {
-        tempSelectedAvatar = val;
-        updateAvatarPreview(val);
-      }
-    }
-
-    function handleAvatarFileUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      if (!file.type.startsWith('image/')) {
-        showToast("請選擇圖片檔案！", "error");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          const size = 80;
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
-
-          const minDim = Math.min(img.width, img.height);
-          const startX = (img.width - minDim) / 2;
-          const startY = (img.height - minDim) / 2;
-
-          ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
-          
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.65);
-          tempSelectedAvatar = compressedDataUrl;
-          updateAvatarPreview(compressedDataUrl);
-          showToast("圖片已最佳化，點擊「確認儲存」即可永久保存！", "success");
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-      e.target.value = '';
-    }
-
-    async function saveSelectedAvatar() {
-      const student = students.find(s => s.id === currentStudentId);
-      if (!student) return;
-
-      student.avatar = tempSelectedAvatar;
-      localModifiedTracker[student.id + '_avatar'] = Date.now();
-
-      saveSystemData();
-      renderStudentCard();
-      renderAdminTable();
-      closeStudentAvatarModal();
-      showToast("個人頭像已保存並同步至 Google 試算表！✨", "success");
-
+      // 即時將學生資料（含幹部職務）同步至 Google 試算表
       sendDataToGoogleSheets({
-        action: "updateAvatar",
-        id: student.id,
-        seat: student.seat,
-        avatar: student.avatar
+        action: "saveStudent",
+        seat: seat,
+        id: id,
+        name: name,
+        role: role,
+        points: points,
+        welcomeMessage: welcomeMessage,
+        avatar: avatar
       });
     }
 
