@@ -1578,11 +1578,11 @@
     }
 
     function getStudentLevel(points) {
-      if (points >= 100) return { name: "傳奇榮譽大師 👑", next: 150, max: 150, prev: 100 };
-      if (points >= 50) return { name: "鑽石探險家 💎", next: 100, max: 100, prev: 50 };
-      if (points >= 30) return { name: "黃金勇者 ⚔️", next: 50, max: 50, prev: 30 };
-      if (points >= 15) return { name: "進階小達人 🌿", next: 30, max: 30, prev: 15 };
-      return { name: "初階探索者 🌟", next: 15, max: 15, prev: 0 };
+      if (points >= 10000) return { name: "傳奇榮譽大師 👑", next: 15000, max: 15000, prev: 100 };
+      if (points >= 5000) return { name: "鑽石探險家 💎", next: 10000, max: 10000, prev: 50 };
+      if (points >= 3000) return { name: "黃金勇者 ⚔️", next: 5000, max: 5000, prev: 30 };
+      if (points >= 1000) return { name: "進階小達人 🌿", next: 3000, max: 3000, prev: 15 };
+      return { name: "初階探索者 🌟", next: 1000, max: 1000, prev: 0 };
     }
 
     // ================= ⏰ 首頁倒數與行事曆渲染邏輯 =================
