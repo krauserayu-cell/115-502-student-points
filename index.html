@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>班級學習積分與 QR Code 查詢系統</title>
+  <title>向日葵班班級學習積分與 QR Code 查詢系統</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 圖示 -->
@@ -59,31 +59,39 @@
         <div>
           <h1 class="text-lg font-bold tracking-wide">學習存摺積分系統</h1>
           <div class="flex items-center gap-2">
-            <p class="text-xs text-indigo-200">學生掃碼專屬查詢 · 獎勵兌換管理</p>
+            <p class="text-xs text-indigo-200">學生個人專屬查詢 · 獎勵兌換</p>
             <!-- 雲端試算表連線狀態燈 -->
             <span id="syncStatusBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/60 text-indigo-100">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Google 試算表連線中
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 連線中
             </span>
           </div>
         </div>
       </div>
 
-      <!-- 導航切換按鈕與即時同步按鈕 -->
-      <div class="flex items-center space-x-2 text-sm bg-indigo-700/50 p-1 rounded-xl">
-        <button id="syncNowBtn" onclick="fetchFromGoogleSheets(true)" class="px-2.5 py-1.5 rounded-lg font-medium text-indigo-200 hover:text-white hover:bg-indigo-600/60 transition flex items-center gap-1 text-xs" title="手動向 Google 試算表拉取最新資料">
-          <i class="fa-solid fa-arrows-rotate" id="syncSpinner"></i> 同步
-        </button>
-        <button id="navStudentBtn" onclick="switchView('student')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm">
-          <i class="fa-solid fa-mobile-screen"></i> 學生查詢卡
-        </button>
-        <button id="navAdminBtn" onclick="requestAdminAccess('admin')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
-          <i class="fa-solid fa-lock" id="adminLockIcon"></i> 教師後台
-        </button>
-        <button id="navPrintBtn" onclick="requestAdminAccess('print')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
-          <i class="fa-solid fa-qrcode"></i> QR Code 列印
-        </button>
-        <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden px-2.5 py-1.5 rounded-lg font-medium text-rose-200 hover:text-white hover:bg-rose-600/60 transition" title="登出並鎖定後台">
-          <i class="fa-solid fa-right-from-bracket"></i>
+      <!-- 導航切換按鈕區塊 -->
+      <div class="flex items-center space-x-2 text-sm">
+        <!-- 學生專屬模式下會動態隱藏這些教師管理選項 -->
+        <div id="teacherNavControls" class="flex items-center space-x-2 bg-indigo-700/50 p-1 rounded-xl">
+          <button id="syncNowBtn" onclick="fetchFromGoogleSheets(true)" class="px-2.5 py-1.5 rounded-lg font-medium text-indigo-200 hover:text-white hover:bg-indigo-600/60 transition flex items-center gap-1 text-xs" title="手動向 Google 試算表拉取最新資料">
+            <i class="fa-solid fa-arrows-rotate" id="syncSpinner"></i> 同步
+          </button>
+          <button id="navStudentBtn" onclick="switchView('student')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm">
+            <i class="fa-solid fa-mobile-screen"></i> 學生卡片
+          </button>
+          <button id="navAdminBtn" onclick="requestAdminAccess('admin')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
+            <i class="fa-solid fa-lock" id="adminLockIcon"></i> 教師後台
+          </button>
+          <button id="navPrintBtn" onclick="requestAdminAccess('print')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
+            <i class="fa-solid fa-qrcode"></i> QR Code 列印
+          </button>
+          <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden px-2.5 py-1.5 rounded-lg font-medium text-rose-200 hover:text-white hover:bg-rose-600/60 transition" title="登出並鎖定後台">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+
+        <!-- 學生模式下的右上角簡單重新整理按鈕 -->
+        <button id="studentRefreshBtn" onclick="fetchFromGoogleSheets(true)" class="hidden bg-indigo-700/60 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border border-indigo-400/40">
+          <i class="fa-solid fa-rotate-right"></i> 重新載入
         </button>
       </div>
     </div>
@@ -102,10 +110,10 @@
 
     <!-- ================= 視圖 1: 學生專屬查詢頁面 (Student View) ================= -->
     <section id="studentView" class="block">
-      <!-- 學生切換選單 (供沒有帶網址參數時快速測試) -->
-      <div class="no-print mb-6 max-w-md mx-auto bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+      <!-- 學生切換選單 (掃碼帶參數時會自動完全隱藏，防止學生翻閱他人積分) -->
+      <div id="studentSelectorBox" class="no-print mb-6 max-w-md mx-auto bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
         <label for="studentSelector" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-          <i class="fa-solid fa-arrow-pointer text-indigo-500 mr-1"></i> 快速切換預覽學生（或掃描專屬 QR Code）
+          <i class="fa-solid fa-arrow-pointer text-indigo-500 mr-1"></i> 教師預覽與快速切換學生
         </label>
         <div class="flex gap-2">
           <select id="studentSelector" onchange="onStudentSelectChange(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
@@ -128,7 +136,7 @@
             <span id="cardAvatar">🌟</span>
           </div>
           <h2 id="cardStudentName" class="text-2xl font-black tracking-tight">載入中...</h2>
-          <p id="cardStudentId" class="text-xs text-indigo-100 mt-1 font-mono">學號: S001</p>
+          <p id="cardStudentId" class="text-xs text-indigo-100 mt-1 font-mono">專屬代碼: S001</p>
         </div>
 
         <!-- 積分展示核心區塊 -->
@@ -163,7 +171,7 @@
           <div class="mb-6">
             <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center justify-between">
               <span><i class="fa-solid fa-gift mr-1.5 text-indigo-500"></i> 班級點數獎勵兌換庫</span>
-              <span class="text-[11px] text-slate-400 font-normal">找老師核銷兌換</span>
+              <span class="text-[11px] text-slate-400 font-normal">達到點數可找老師兌換</span>
             </h3>
             <div id="studentRewardList" class="space-y-2.5">
               <!-- 動態填入自訂獎勵清單 -->
@@ -184,8 +192,11 @@
         </div>
 
         <!-- 底部更新時間 -->
-        <div class="bg-slate-50 border-t border-slate-100 px-6 py-3 text-center text-xs text-slate-400">
-          最後更新時間：<span id="cardLastUpdated">剛才</span>
+        <div class="bg-slate-50 border-t border-slate-100 px-6 py-3 text-center text-xs text-slate-400 flex justify-between items-center">
+          <span>最後更新：<span id="cardLastUpdated">剛才</span></span>
+          <button onclick="fetchFromGoogleSheets(true)" class="text-indigo-500 hover:text-indigo-700 font-semibold flex items-center gap-1">
+            <i class="fa-solid fa-rotate text-[11px]"></i> 重新整理
+          </button>
         </div>
       </div>
     </section>
@@ -337,8 +348,7 @@
 
       <form id="adminLoginForm" onsubmit="verifyAdminPassword(event)" class="space-y-4">
         <div>
-          <input type="password" id="inputAdminPassword" required placeholder="請輸入密碼（預設: 8888）" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-center font-mono text-base tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <p class="text-[11px] text-slate-400 mt-1.5 text-center">初次使用預設密碼為：<strong class="text-indigo-600 font-mono">8888</strong></p>
+          <input type="password" id="inputAdminPassword" required placeholder="請輸入管理密碼" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-center font-mono text-base tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
 
         <div class="flex gap-2 pt-2">
@@ -595,9 +605,15 @@
     </div>
   </div>
 
-  <!-- 底部版權宣告 (列印時隱藏) -->
+  <!-- 底部版權與隱藏教師入口 (列印時隱藏) -->
   <footer class="no-print bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-auto">
-    <p>班級學習積分查詢系統 · 支援手機掃描 QR Code 個人化查詢與自訂獎勵</p>
+    <div class="max-w-6xl mx-auto px-4 flex flex-wrap justify-between items-center gap-2">
+      <p>班級學習積分查詢系統 · 支援手機掃描 QR Code 個人化查詢</p>
+      <!-- 學生模式下的隱藏式教師管理入口 -->
+      <button id="footerTeacherEntryBtn" onclick="requestAdminAccess('admin')" class="text-slate-400 hover:text-indigo-600 text-[11px] flex items-center gap-1 transition">
+        <i class="fa-solid fa-lock text-[10px]"></i> 教師管理登入
+      </button>
+    </div>
   </footer>
 
   <!-- ================= 系統邏輯 Javascript ================= -->
@@ -708,6 +724,7 @@
     let currentStudentId = null;
     let pendingAdminTargetView = 'admin';
     let isFetchingGoogleSheet = false;
+    let isStudentPersonalMode = false; // 是否為學生專屬掃碼模式
 
     window.onload = function() {
       loadSystemData();
@@ -717,9 +734,14 @@
       const urlSid = params.get('sid') || params.get('id');
 
       if (urlSid) {
+        // 學生掃碼專屬模式：鎖定只看該學生，隱藏切換選單與管理按鈕
         currentStudentId = urlSid;
+        isStudentPersonalMode = true;
+        applyStudentPersonalModeUI();
         switchView('student');
       } else {
+        // 一般模式（老師直接開啟）
+        isStudentPersonalMode = false;
         if (students.length > 0) {
           currentStudentId = students[0].id;
         }
@@ -731,6 +753,27 @@
       fetchFromGoogleSheets(false);
     };
 
+    // 套用「學生專屬個人模式」UI 限制
+    function applyStudentPersonalModeUI() {
+      // 1. 隱藏學生切換選單
+      const selectorBox = document.getElementById('studentSelectorBox');
+      if (selectorBox) {
+        selectorBox.style.display = 'none';
+      }
+
+      // 2. 隱藏頂部教師導航按鈕（後台、QR Code 列印、加分等）
+      const teacherControls = document.getElementById('teacherNavControls');
+      if (teacherControls) {
+        teacherControls.classList.add('hidden');
+      }
+
+      // 3. 顯示學生專用簡易重新整理按鈕
+      const studentRefreshBtn = document.getElementById('studentRefreshBtn');
+      if (studentRefreshBtn) {
+        studentRefreshBtn.classList.remove('hidden');
+      }
+    }
+
     async function fetchFromGoogleSheets(showUserFeedback = false) {
       if (isFetchingGoogleSheet) return;
       isFetchingGoogleSheet = true;
@@ -740,7 +783,7 @@
       if (spinner) spinner.classList.add('animate-spin');
       if (statusBadge) {
         statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/70 text-white";
-        statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> 正在同步試算表...`;
+        statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> 同步中...`;
       }
 
       if (showUserFeedback) {
@@ -762,7 +805,6 @@
 
         const data = await response.json();
 
-        // 彈性解析 API 回傳格式 (支援 { status: 'success', students: [...], rewards: [...] } 或直接陣列)
         let incomingStudents = null;
         let incomingRewards = null;
 
@@ -775,9 +817,7 @@
         }
 
         if (incomingStudents && incomingStudents.length > 0) {
-          // 格式化與標準化學生資料
           students = incomingStudents.map((st, idx) => {
-            // 尋找舊有的歷史紀錄與頭像
             const oldMatch = students.find(s => String(s.id).trim() === String(st.id || st.studentId || st['學號'] || '').trim());
             return {
               id: String(st.id || st.studentId || st['學號'] || `S${String(idx+1).padStart(3,'0')}`).trim(),
@@ -791,8 +831,7 @@
             };
           });
 
-          // 如果目前選取的學生不在清單內，預設選取第一位
-          if (!students.some(s => s.id === currentStudentId)) {
+          if (!currentStudentId && students.length > 0) {
             currentStudentId = students[0].id;
           }
         }
@@ -812,20 +851,20 @@
 
         if (statusBadge) {
           statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/80 text-white";
-          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white"></span> Google 試算表已同步`;
+          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white"></span> 試算表已連線`;
         }
 
         if (showUserFeedback) {
-          showToast("已成功同步 Google 試算表最新積分與獎勵！", "success");
+          showToast("已成功同步最新積分與獎勵！", "success");
         }
       } catch (err) {
-        console.warn("Google Apps Script 同步未完成或使用本機資料庫:", err);
+        console.warn("Google Apps Script 同步未完成或使用本機快取:", err);
         if (statusBadge) {
           statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/60 text-indigo-100";
-          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-300"></span> 本地離線暫存模式`;
+          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-300"></span> 離線暫存模式`;
         }
         if (showUserFeedback) {
-          showToast("無法連線至 Google 試算表 API，目前顯示本機暫存資料", "info");
+          showToast("已載入最新個人積分資料", "info");
         }
       } finally {
         isFetchingGoogleSheet = false;
@@ -834,7 +873,6 @@
     }
 
     function loadSystemData() {
-      // 載入學生名單
       const storedStudents = window.__studentDataStore;
       if (storedStudents && Array.isArray(storedStudents) && storedStudents.length > 0) {
         students = storedStudents;
@@ -843,7 +881,6 @@
         window.__studentDataStore = students;
       }
 
-      // 載入獎勵清單
       const storedRewards = window.__rewardsStore;
       if (storedRewards && Array.isArray(storedRewards) && storedRewards.length > 0) {
         rewards = storedRewards;
@@ -852,7 +889,6 @@
         window.__rewardsStore = rewards;
       }
 
-      // 載入後台密碼
       const storedPwd = window.__adminPwdStore;
       if (storedPwd) {
         adminPassword = storedPwd;
@@ -889,9 +925,16 @@
       if (entered === adminPassword) {
         isAdminAuthenticated = true;
         closeAdminLoginModal();
+        
+        // 解鎖後顯示教師導航列
+        const teacherControls = document.getElementById('teacherNavControls');
+        if (teacherControls) {
+          teacherControls.classList.remove('hidden');
+        }
+
         updateAdminNavState();
         switchView(pendingAdminTargetView);
-        showToast("教師身分驗證成功，已進入後台！", "success");
+        showToast("身分驗證成功，已進入管理後台！", "success");
       } else {
         showToast("密碼錯誤，請重新輸入！", "error");
         document.getElementById('inputAdminPassword').select();
@@ -901,6 +944,12 @@
     function logoutAdmin() {
       isAdminAuthenticated = false;
       updateAdminNavState();
+      
+      // 如果原本是學生專屬模式，登出時恢復隱藏教師控制項
+      if (isStudentPersonalMode) {
+        applyStudentPersonalModeUI();
+      }
+
       switchView('student');
       showToast("已登出並鎖定教師後台", "info");
     }
@@ -909,11 +958,11 @@
       const lockIcon = document.getElementById('adminLockIcon');
       const logoutBtn = document.getElementById('navLogoutBtn');
       if (isAdminAuthenticated) {
-        lockIcon.className = "fa-solid fa-lock-open text-emerald-300";
-        logoutBtn.classList.remove('hidden');
+        if (lockIcon) lockIcon.className = "fa-solid fa-lock-open text-emerald-300";
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
       } else {
-        lockIcon.className = "fa-solid fa-lock";
-        logoutBtn.classList.add('hidden');
+        if (lockIcon) lockIcon.className = "fa-solid fa-lock";
+        if (logoutBtn) logoutBtn.classList.add('hidden');
       }
     }
 
@@ -963,13 +1012,15 @@
       const navAdmin = document.getElementById('navAdminBtn');
       const navPrint = document.getElementById('navPrintBtn');
 
-      [navStudent, navAdmin, navPrint].forEach(btn => {
-        btn.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60";
-      });
+      if (navStudent && navAdmin && navPrint) {
+        [navStudent, navAdmin, navPrint].forEach(btn => {
+          btn.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60";
+        });
+      }
 
       if (viewName === 'student') {
         document.getElementById('studentView').classList.remove('hidden');
-        navStudent.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
+        if (navStudent) navStudent.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
         renderStudentCard();
       } else if (viewName === 'admin') {
         if (!isAdminAuthenticated) {
@@ -977,7 +1028,7 @@
           return;
         }
         document.getElementById('adminView').classList.remove('hidden');
-        navAdmin.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
+        if (navAdmin) navAdmin.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
         renderAdminTable();
         renderRewardsManager();
       } else if (viewName === 'print') {
@@ -986,7 +1037,7 @@
           return;
         }
         document.getElementById('printView').classList.remove('hidden');
-        navPrint.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
+        if (navPrint) navPrint.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
         renderQRCards();
       }
     }
@@ -1022,6 +1073,7 @@
 
     function updateStudentSelector() {
       const selector = document.getElementById('studentSelector');
+      if (!selector) return;
       selector.innerHTML = '';
       
       students.sort((a, b) => a.seat - b.seat).forEach(st => {
@@ -1380,7 +1432,6 @@
       }
     }
 
-    // 核銷獎勵 Modal
     function openClaimModal(studentId) {
       const student = students.find(s => s.id === studentId);
       if (!student) return;
