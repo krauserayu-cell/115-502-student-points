@@ -45,6 +45,18 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
+    /* 對話框尖角效果 */
+    .speech-bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 24px;
+      border-width: 8px 8px 0;
+      border-style: solid;
+      border-color: #fef3c7 transparent;
+      display: block;
+      width: 0;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased flex flex-col">
@@ -53,11 +65,14 @@
   <header class="no-print bg-indigo-600 text-white shadow-md sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
       <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('student')">
-        <div class="bg-white text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center font-black text-xl shadow">
-          <i class="fa-solid fa-trophy"></i>
+        <!-- 班級專屬 Logo (支援上傳圖片與智慧防破圖) -->
+        <div class="w-11 h-11 rounded-full overflow-hidden bg-white shadow-md border-2 border-white/80 flex items-center justify-center flex-shrink-0">
+          <img src="_e48fa19a-4efd-4d92-b5e4-99ca56628130.jpg" alt="班級Logo" class="w-full h-full object-cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-full h-full bg-amber-400 text-indigo-900 flex items-center justify-center font-black text-xl\'><i class=\'fa-solid fa-sun text-white\'></i></div>'">
         </div>
         <div>
-          <h1 class="text-lg font-bold tracking-wide">學習存摺積分系統</h1>
+          <h1 class="text-lg font-bold tracking-wide flex items-center gap-1.5">
+            學習存摺積分系統
+          </h1>
           <div class="flex items-center gap-2">
             <p class="text-xs text-indigo-200">學生個人專屬查詢 · 獎勵兌換</p>
             <!-- 雲端試算表連線狀態燈 -->
@@ -127,6 +142,7 @@
 
       <!-- 學生個人資訊卡 -->
       <div id="studentCardContainer" class="max-w-md mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 transform transition">
+        
         <!-- 頂部漸層背景與頭像 -->
         <div class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-6 text-white text-center relative">
           <div class="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold tracking-wider">
@@ -147,8 +163,23 @@
           <p id="cardStudentId" class="text-xs text-indigo-100 mt-1 font-mono">專屬代碼: S001</p>
         </div>
 
-        <!-- 積分展示核心區塊 -->
         <div class="p-6">
+          <!-- 💌 老師專屬勉勵與歡迎詞卡片 -->
+          <div class="mb-5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-4 border border-amber-200 shadow-sm relative">
+            <div class="flex items-center gap-2 mb-1.5">
+              <div class="w-6 h-6 rounded-full overflow-hidden border border-amber-300 bg-white flex-shrink-0 flex items-center justify-center">
+                <img src="_e48fa19a-4efd-4d92-b5e4-99ca56628130.jpg" alt="Logo" class="w-full h-full object-cover" onerror="this.style.display='none'">
+              </div>
+              <span class="text-xs font-bold text-amber-900 flex items-center gap-1">
+                <i class="fa-solid fa-heart text-rose-500"></i> 老師的專屬鼓勵
+              </span>
+            </div>
+            <p id="cardWelcomeMessage" class="text-xs sm:text-sm text-amber-950 font-medium leading-relaxed italic bg-white/80 p-2.5 rounded-xl border border-amber-100/80">
+              🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！
+            </p>
+          </div>
+
+          <!-- 積分展示核心區塊 -->
           <div class="bg-gradient-to-b from-indigo-50/50 to-purple-50/30 rounded-2xl p-5 border border-indigo-100 text-center mb-6">
             <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-100/80 px-3 py-1 rounded-full">
               目前累積學習點數
@@ -221,7 +252,7 @@
               <i class="fa-solid fa-shield-halved"></i> 密碼保護中
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-0.5">扣分與加分皆會自動同步至 Google 試算表</p>
+          <p class="text-xs text-slate-500 mt-0.5">自訂學生歡迎詞、積分扣減與個人資料皆會同步保存</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button onclick="fetchFromGoogleSheets(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 border border-indigo-200 shadow-sm">
@@ -249,7 +280,7 @@
       <!-- 後台頁籤選單 -->
       <div class="flex space-x-2 border-b border-slate-200 mb-6">
         <button id="adminTabStudentsBtn" onclick="switchAdminTab('students')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition">
-          <i class="fa-solid fa-users"></i> 學生積分管理
+          <i class="fa-solid fa-users"></i> 學生積分與歡迎詞 (<span id="studentCountBadge">0</span>)
         </button>
         <button id="adminTabRewardsBtn" onclick="switchAdminTab('rewards')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition">
           <i class="fa-solid fa-gifts"></i> 獎勵兌換項目設定 (<span id="rewardCountBadge">0</span>)
@@ -284,7 +315,7 @@
                 <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase font-bold text-slate-500">
                   <th class="py-3 px-4">座號 / 學號</th>
                   <th class="py-3 px-4">學生姓名</th>
-                  <th class="py-3 px-4">目前稱號</th>
+                  <th class="py-3 px-4">老師專屬歡迎詞/勉勵</th>
                   <th class="py-3 px-4 text-center">積分</th>
                   <th class="py-3 px-4 text-center">快速調整</th>
                   <th class="py-3 px-4 text-center">核銷獎勵</th>
@@ -337,6 +368,52 @@
     </section>
 
   </main>
+
+  <!-- ================= 模態視窗: 編輯學生歡迎詞 (Welcome Message Modal) ================= -->
+  <div id="welcomeMessageModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-comment-dots text-amber-500"></i> 設定學生專屬鼓勵與歡迎詞
+        </h3>
+        <button onclick="closeWelcomeMessageModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-500 mb-3">
+        對象：<span id="welcomeModalStudentName" class="font-bold text-indigo-600 text-sm">--</span>
+      </div>
+
+      <form id="welcomeMessageForm" onsubmit="saveWelcomeMessage(event)" class="space-y-3.5">
+        <input type="hidden" id="welcomeModalStudentId">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">歡迎與勉勵詞內容 *</label>
+          <textarea id="welcomeModalInput" rows="3" required placeholder="例如：這週在分組活動表現很棒，繼續保持積極的心情喔！" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 mb-1.5">快速套用範本：</label>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="setQuickWelcome('🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">日常鼓勵</button>
+            <button type="button" onclick="setQuickWelcome('🏆 這週作業與課堂表現非常亮眼，老師為你感到驕傲！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">表現優秀</button>
+            <button type="button" onclick="setQuickWelcome('💪 遇到挑戰不要灰心，多向同學與老師提問，你一定做得到！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">加油打氣</button>
+            <button type="button" onclick="setQuickWelcome('📚 距離下一個稱號只差一點點了，今天再爭取加分吧！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">集點衝刺</button>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeWelcomeMessageModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition shadow-sm">
+            儲存勉勵詞
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- ================= 模態視窗: 教師登入密碼驗證 ================= -->
   <div id="adminLoginModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
@@ -431,6 +508,11 @@
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">學生姓名 *</label>
           <input type="text" id="inputName" required placeholder="例如: 王小明" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">專屬歡迎與勉勵詞</label>
+          <input type="text" id="inputWelcomeMessage" placeholder="例如: 歡迎回來！今天也要加油喔！" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
         </div>
 
         <div>
@@ -694,10 +776,10 @@
     // Google Apps Script Web App API 網址
     const GAS_API_URL = "https://script.google.com/macros/s/AKfycbynVsidr5Hs7xlSwHUuWuC7C0xa2xPkVsvboW_jImOzBW3S_ejZ7IBNYiOQHWRQTn68ZQ/exec";
 
-    // 預設教師密碼
+    // 預設教師密碼 (僅在未曾設定過自訂密碼時使用)
     const DEFAULT_ADMIN_PASSWORD = "8888";
 
-    // 預設範例學生名單
+    // 預設範例學生名單（包含預設歡迎勉勵詞）
     const DEFAULT_STUDENTS = [
       {
         id: "S001",
@@ -705,6 +787,7 @@
         name: "王小明",
         avatar: "🌟",
         points: 48,
+        welcomeMessage: "🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！",
         history: [
           { time: "09/01 09:15", reason: "開學預習表現優異", delta: 5 },
           { time: "09/01 14:20", reason: "主動協助整理班級圖書", delta: 3 },
@@ -717,6 +800,7 @@
         name: "李美華",
         avatar: "🦄",
         points: 65,
+        welcomeMessage: "🦄 英文朗讀很出色！期待你在課堂上更多精彩分享！",
         history: [
           { time: "08/29 11:30", reason: "英文朗讀流暢生動", delta: 5 },
           { time: "08/30 15:40", reason: "自然實驗組長認真負責", delta: 4 },
@@ -729,6 +813,7 @@
         name: "陳冠宇",
         avatar: "🚀",
         points: 18,
+        welcomeMessage: "🚀 體育團隊合作非常棒，課業上也繼續衝刺升級吧！",
         history: [
           { time: "08/30 10:10", reason: "體育課團隊合作精神佳", delta: 3 },
           { time: "08/31 11:20", reason: "上課專注發言", delta: 2 }
@@ -740,6 +825,7 @@
         name: "張雅婷",
         avatar: "🦁",
         points: 82,
+        welcomeMessage: "👑 自主閱讀達標，是全班的榜樣，繼續保持這份熱情！",
         history: [
           { time: "08/28 16:00", reason: "暑假自主閱讀達標", delta: 15 },
           { time: "08/30 13:30", reason: "擔任值日生打掃認真", delta: 3 }
@@ -751,6 +837,7 @@
         name: "林哲瑋",
         avatar: "🎨",
         points: 32,
+        welcomeMessage: "🎨 美術作品令人驚艷，期待你更多精彩的創作！",
         history: [
           { time: "08/30 14:00", reason: "美術作品展覽入選", delta: 8 }
         ]
@@ -793,14 +880,13 @@
     let students = [];
     let rewards = [];
     let adminPassword = DEFAULT_ADMIN_PASSWORD;
+    let hasCustomPassword = false; // 是否已自訂密碼
     let isAdminAuthenticated = false;
     let currentStudentId = null;
     let pendingAdminTargetView = 'admin';
     let isFetchingGoogleSheet = false;
     let isStudentPersonalMode = false;
     let tempSelectedAvatar = '🌟';
-    
-    // 本機最後修改保護戳記 (防止雲端延遲覆蓋剛剛修改的資料)
     let localModifiedTracker = {};
 
     function initApp() {
@@ -854,7 +940,7 @@
       if (studentRefreshBtn) studentRefreshBtn.classList.remove('hidden');
     }
 
-    // 連線 Google 試算表取得最新資料 (帶有防覆蓋保護)
+    // 連線 Google 試算表取得最新資料 (保護本機自訂密碼與歡迎詞)
     async function fetchFromGoogleSheets(showUserFeedback = false) {
       if (isFetchingGoogleSheet) return;
       isFetchingGoogleSheet = true;
@@ -902,7 +988,10 @@
           else if (Array.isArray(data.data)) incomingStudents = data.data;
           
           if (Array.isArray(data.rewards)) incomingRewards = data.rewards;
-          if (data.adminPassword) adminPassword = String(data.adminPassword);
+          // 只有在尚未自訂本機密碼時才採納雲端密碼
+          if (data.adminPassword && !hasCustomPassword) {
+            adminPassword = String(data.adminPassword);
+          }
         }
 
         if (incomingStudents && incomingStudents.length > 0) {
@@ -913,14 +1002,14 @@
             const oldMatch = students.find(s => String(s.id).trim().toLowerCase() === rawId.toLowerCase());
             const cloudAvatar = String(st.avatar || st['頭像'] || st.Avatar || '').trim();
             const cloudPoints = Number(st.points || st.score || st['積分'] || st['點數'] || st.Points || 0);
+            const cloudWelcome = st.welcomeMessage || st['歡迎詞'] || st['鼓勵話語'] || '';
 
-            // 檢查本機在最近 30 秒內是否有異動保護
             const lastLocalPointEdit = localModifiedTracker[rawId + '_points'] || 0;
             const lastLocalAvatarEdit = localModifiedTracker[rawId + '_avatar'] || 0;
+            const lastLocalWelcomeEdit = localModifiedTracker[rawId + '_welcome'] || 0;
 
             let finalPoints = cloudPoints;
             if (oldMatch && (nowTime - lastLocalPointEdit < 30000)) {
-              // 優先保留本機剛剛核銷或扣減的分數
               finalPoints = oldMatch.points;
             }
 
@@ -931,12 +1020,18 @@
               finalAvatar = oldMatch?.avatar || '🌟';
             }
 
+            let finalWelcome = (cloudWelcome && cloudWelcome.trim() !== '') ? cloudWelcome : (oldMatch?.welcomeMessage || "🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！");
+            if (oldMatch && (nowTime - lastLocalWelcomeEdit < 60000)) {
+              finalWelcome = oldMatch.welcomeMessage;
+            }
+
             return {
               id: rawId,
               seat: Number(st.seat || st.seatNumber || st['座號'] || st.Seat || idx + 1),
               name: String(st.name || st.studentName || st['姓名'] || st.Name || `學生${idx+1}`),
               avatar: finalAvatar,
               points: finalPoints,
+              welcomeMessage: finalWelcome,
               history: oldMatch?.history && oldMatch.history.length > 0 ? oldMatch.history : (st.history || [
                 { time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), reason: "試算表同步", delta: finalPoints }
               ])
@@ -1004,8 +1099,15 @@
           rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
         }
 
-        const storedPwd = localStorage.getItem('class_points_admin_pwd') || window.__adminPwdStore;
-        adminPassword = storedPwd || DEFAULT_ADMIN_PASSWORD;
+        // 讀取自訂教師密碼
+        const savedCustomPwd = localStorage.getItem('class_points_custom_pwd');
+        if (savedCustomPwd && savedCustomPwd.trim() !== '') {
+          adminPassword = savedCustomPwd;
+          hasCustomPassword = true;
+        } else {
+          adminPassword = DEFAULT_ADMIN_PASSWORD;
+          hasCustomPassword = false;
+        }
       } catch (e) {
         console.warn("載入本地快取資料失敗，使用預設值:", e);
         students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
@@ -1021,16 +1123,17 @@
       try {
         localStorage.setItem('class_points_students', JSON.stringify(students));
         localStorage.setItem('class_points_rewards', JSON.stringify(rewards));
-        localStorage.setItem('class_points_admin_pwd', adminPassword);
+        if (hasCustomPassword) {
+          localStorage.setItem('class_points_custom_pwd', adminPassword);
+        }
       } catch (e) {
         console.warn("LocalStorage 寫入受限:", e);
       }
     }
 
-    // 核心資料雲端發送器 (雙軌通訊：POST + GET 確保 100% 寫入試算表)
+    // 核心資料雲端發送器
     async function sendDataToGoogleSheets(payload) {
       try {
-        // 通道 1: POST text/plain (無 CORS 阻擋)
         fetch(GAS_API_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -1038,10 +1141,9 @@
             'Content-Type': 'text/plain;charset=utf-8'
           },
           body: JSON.stringify(payload)
-        }).catch(err => console.warn("POST 發送通道略過:", err));
+        }).catch(err => console.warn("POST 發送略過:", err));
 
-        // 通道 2: 若為點數或短文字，加送 GET 參數備援
-        if (payload.action === 'updatePoints' || (payload.action === 'updateAvatar' && payload.avatar.length < 50)) {
+        if (payload.action === 'updatePoints' || (payload.action === 'updateAvatar' && payload.avatar && payload.avatar.length < 50)) {
           const separator = GAS_API_URL.includes('?') ? '&' : '?';
           let queryUrl = `${GAS_API_URL}${separator}action=${encodeURIComponent(payload.action)}&id=${encodeURIComponent(payload.id || '')}&seat=${encodeURIComponent(payload.seat || '')}&_t=${Date.now()}`;
           if (payload.points !== undefined) queryUrl += `&points=${encodeURIComponent(payload.points)}`;
@@ -1144,9 +1246,11 @@
       }
 
       adminPassword = next;
+      hasCustomPassword = true;
+      localStorage.setItem('class_points_custom_pwd', adminPassword);
       saveSystemData();
       closeChangePasswordModal();
-      showToast("教師後台密碼已成功更新！", "success");
+      showToast("教師後台密碼已永久保存！下次請使用新密碼登入。", "success");
     }
 
     function switchView(viewName) {
@@ -1268,6 +1372,12 @@
       document.getElementById('cardStudentId').textContent = `專屬代碼: ${student.id}`;
       document.getElementById('cardPoints').textContent = student.points;
 
+      // 💌 渲染專屬歡迎勉勵詞
+      const welcomeMsgEl = document.getElementById('cardWelcomeMessage');
+      if (welcomeMsgEl) {
+        welcomeMsgEl.textContent = student.welcomeMessage || "🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！";
+      }
+
       const levelInfo = getStudentLevel(student.points);
       document.getElementById('cardLevelName').textContent = levelInfo.name;
       
@@ -1363,6 +1473,9 @@
 
     function renderAdminTable() {
       const tbody = document.getElementById('adminStudentTableBody');
+      const badge = document.getElementById('studentCountBadge');
+      if (badge) badge.textContent = students.length;
+
       const keyword = (document.getElementById('adminSearchInput').value || '').trim().toLowerCase();
       tbody.innerHTML = '';
 
@@ -1378,7 +1491,6 @@
       }
 
       filtered.forEach(st => {
-        const level = getStudentLevel(st.points);
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50/80 transition";
         
@@ -1400,10 +1512,11 @@
               <span class="font-bold text-slate-800">${st.name}</span>
             </div>
           </td>
-          <td class="py-3 px-4">
-            <span class="text-xs font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600">
-              ${level.name}
-            </span>
+          <td class="py-3 px-4 max-w-[220px]">
+            <div class="flex items-center justify-between gap-1.5 bg-amber-50/70 hover:bg-amber-100/70 p-1.5 rounded-xl border border-amber-200/60 cursor-pointer transition" onclick="openWelcomeMessageModal('${st.id}')" title="點擊修改專屬勉勵詞">
+              <p class="text-xs text-amber-950 truncate">${st.welcomeMessage || '🌟 歡迎回來！今天也要加油喔！'}</p>
+              <i class="fa-solid fa-pen text-[10px] text-amber-600 flex-shrink-0"></i>
+            </div>
           </td>
           <td class="py-3 px-4 text-center">
             <span class="font-black text-indigo-600 text-base">${st.points}</span>
@@ -1455,7 +1568,6 @@
       const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
       student.history.push({ time: timeStr, reason: reason, delta: delta });
 
-      // 設置本機保護戳記
       localModifiedTracker[student.id + '_points'] = Date.now();
 
       saveSystemData();
@@ -1464,7 +1576,6 @@
       if (currentStudentId === id) renderStudentCard();
       showToast(`${student.name} ${delta > 0 ? '+' + delta : delta} 點 (${reason})，已同步雲端`, "success");
 
-      // 即時同步至 Google 試算表
       sendDataToGoogleSheets({
         action: "updatePoints",
         id: student.id,
@@ -1498,6 +1609,51 @@
       updateStudentSelector();
       renderStudentCard();
       showToast(`全班已批量加上 ${amount} 點 (${reason})，已同步雲端`, "success");
+    }
+
+    // ================= 編輯勉勵詞 Modal 相關函式 =================
+    function openWelcomeMessageModal(studentId) {
+      const student = students.find(s => s.id === studentId);
+      if (!student) return;
+
+      document.getElementById('welcomeModalStudentId').value = student.id;
+      document.getElementById('welcomeModalStudentName').textContent = `${student.name} (#${student.seat})`;
+      document.getElementById('welcomeModalInput').value = student.welcomeMessage || "🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！";
+      document.getElementById('welcomeMessageModal').classList.remove('hidden');
+    }
+
+    function closeWelcomeMessageModal() {
+      document.getElementById('welcomeMessageModal').classList.add('hidden');
+    }
+
+    function setQuickWelcome(text) {
+      document.getElementById('welcomeModalInput').value = text;
+    }
+
+    function saveWelcomeMessage(e) {
+      e.preventDefault();
+      const studentId = document.getElementById('welcomeModalStudentId').value;
+      const msg = document.getElementById('welcomeModalInput').value.trim();
+      const student = students.find(s => s.id === studentId);
+
+      if (!student || !msg) return;
+
+      student.welcomeMessage = msg;
+      localModifiedTracker[student.id + '_welcome'] = Date.now();
+
+      saveSystemData();
+      renderAdminTable();
+      if (currentStudentId === student.id) renderStudentCard();
+      closeWelcomeMessageModal();
+      showToast(`已成功更新 ${student.name} 的專屬鼓勵話語！`, "success");
+
+      // 同步到 Google 試算表
+      sendDataToGoogleSheets({
+        action: "updateWelcomeMessage",
+        id: student.id,
+        seat: student.seat,
+        welcomeMessage: msg
+      });
     }
 
     function renderRewardsManager() {
@@ -1691,7 +1847,8 @@
           </div>
 
           ${cardAvatarDisplay}
-          <h4 class="font-black text-slate-800 text-lg mb-2">${st.name}</h4>
+          <h4 class="font-black text-slate-800 text-lg mb-1">${st.name}</h4>
+          <p class="text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md mb-2 truncate max-w-[180px]">${st.welcomeMessage || '快樂學習、天天進步！'}</p>
           
           <div id="${qrContainerId}" class="p-2 bg-white border border-slate-200 rounded-xl shadow-inner flex items-center justify-center mb-3 min-h-[136px]"></div>
           
@@ -1727,6 +1884,7 @@
       document.getElementById('inputSeat').value = students.length + 1;
       document.getElementById('inputId').value = `S${String(students.length + 1).padStart(3, '0')}`;
       document.getElementById('inputName').value = "";
+      document.getElementById('inputWelcomeMessage').value = "🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！";
       document.getElementById('inputAvatar').value = "🌟";
       document.getElementById('inputPoints').value = "0";
       document.getElementById('studentModal').classList.remove('hidden');
@@ -1741,6 +1899,7 @@
       document.getElementById('inputSeat').value = student.seat;
       document.getElementById('inputId').value = student.id;
       document.getElementById('inputName').value = student.name;
+      document.getElementById('inputWelcomeMessage').value = student.welcomeMessage || "🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！";
       document.getElementById('inputAvatar').value = student.avatar || "🌟";
       document.getElementById('inputPoints').value = student.points;
       document.getElementById('studentModal').classList.remove('hidden');
@@ -1760,6 +1919,7 @@
       const seat = parseInt(document.getElementById('inputSeat').value, 10);
       const id = document.getElementById('inputId').value.trim();
       const name = document.getElementById('inputName').value.trim();
+      const welcomeMessage = document.getElementById('inputWelcomeMessage').value.trim() || "🌟 歡迎回來！今天也要一起快樂學習、發揮最好的實力喔！";
       const avatar = document.getElementById('inputAvatar').value.trim() || "🌟";
       const points = parseInt(document.getElementById('inputPoints').value, 10) || 0;
 
@@ -1774,6 +1934,7 @@
           students[index].seat = seat;
           students[index].id = id;
           students[index].name = name;
+          students[index].welcomeMessage = welcomeMessage;
           students[index].avatar = avatar;
           students[index].points = points;
         }
@@ -1785,6 +1946,7 @@
           name,
           avatar,
           points,
+          welcomeMessage,
           history: [{
             time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
             reason: "建立學生帳號",
@@ -1900,7 +2062,6 @@
         const img = new Image();
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          // 壓縮為 80x80 超輕量化縮圖 (<3KB)，保證符合試算表儲存格規範
           const size = 80;
           canvas.width = size;
           canvas.height = size;
@@ -1928,8 +2089,6 @@
       if (!student) return;
 
       student.avatar = tempSelectedAvatar;
-      
-      // 標註保護戳記
       localModifiedTracker[student.id + '_avatar'] = Date.now();
 
       saveSystemData();
@@ -1938,7 +2097,6 @@
       closeStudentAvatarModal();
       showToast("個人頭像已保存並同步至 Google 試算表！✨", "success");
 
-      // 同步寫入 Google 試算表
       sendDataToGoogleSheets({
         action: "updateAvatar",
         id: student.id,
@@ -1975,7 +2133,11 @@
           if (parsed.students && Array.isArray(parsed.students)) {
             students = parsed.students;
             if (parsed.rewards && Array.isArray(parsed.rewards)) rewards = parsed.rewards;
-            if (parsed.adminPassword) adminPassword = parsed.adminPassword;
+            if (parsed.adminPassword) {
+              adminPassword = parsed.adminPassword;
+              hasCustomPassword = true;
+              localStorage.setItem('class_points_custom_pwd', adminPassword);
+            }
           } else if (Array.isArray(parsed)) {
             students = parsed;
           }
