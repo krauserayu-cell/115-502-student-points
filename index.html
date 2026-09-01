@@ -136,6 +136,62 @@
         </div>
       </div>
 
+      <!-- ⏰ 班級重要事件即時倒數與行事曆小卡 (Countdown & Calendar Card) -->
+      <div class="max-w-md mx-auto mb-5 bg-gradient-to-br from-orange-500 via-amber-500 to-amber-600 rounded-3xl p-4 sm:p-5 text-white shadow-lg border border-amber-300/40 relative overflow-hidden">
+        <div class="absolute -right-6 -bottom-6 text-white/10 text-8xl font-black pointer-events-none select-none">
+          <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        
+        <div class="flex items-center justify-between mb-3 relative z-10">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-white/20 backdrop-blur-md border border-white/30 text-white">
+            <i class="fa-solid fa-bullhorn text-amber-200 animate-bounce"></i> 班級重要提醒
+          </span>
+          <span id="currentDateDisplay" class="text-xs text-amber-100 font-mono font-semibold">2026/09/01</span>
+        </div>
+
+        <!-- 重點倒數展示區 -->
+        <div id="countdownBannerBox" class="relative z-10 bg-white/15 backdrop-blur-md rounded-2xl p-3.5 border border-white/25 mb-3 shadow-inner">
+          <div class="flex justify-between items-start gap-2">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span id="countdownBadge" class="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
+                  倒數中
+                </span>
+                <span id="countdownEventTag" class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  考試測驗
+                </span>
+              </div>
+              <h3 id="countdownEventTitle" class="text-base font-black text-white drop-shadow-sm line-clamp-1">
+                即將到來重要事件
+              </h3>
+              <p id="countdownEventDesc" class="text-xs text-amber-100 mt-0.5 line-clamp-1">
+                請同學記得預習並準備文具
+              </p>
+            </div>
+            <div class="text-right flex-shrink-0 bg-white/25 px-3 py-1.5 rounded-2xl border border-white/30 text-center min-w-[72px]">
+              <div class="text-[10px] text-amber-100 font-bold uppercase">距離還有</div>
+              <div class="text-2xl font-black text-amber-100 tracking-tight" id="countdownDaysNum">0</div>
+              <div class="text-[10px] font-bold text-white">天</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 展開所有近期行事曆清單 -->
+        <div class="relative z-10">
+          <div class="flex justify-between items-center text-xs font-bold mb-2">
+            <span class="text-amber-100 flex items-center gap-1">
+              <i class="fa-solid fa-calendar-days"></i> 近期重要日程
+            </span>
+            <button onclick="toggleHomeCalendarList()" id="toggleCalendarBtn" class="text-[11px] text-white hover:text-amber-200 underline flex items-center gap-1 font-semibold">
+              <span>查看全部事項</span> <i class="fa-solid fa-chevron-down text-[10px]" id="calendarChevron"></i>
+            </button>
+          </div>
+          <div id="homeCalendarList" class="space-y-1.5 hidden max-h-48 overflow-y-auto pr-1">
+            <!-- 動態填入近期日程 -->
+          </div>
+        </div>
+      </div>
+
       <!-- 學生切換選單 (掃碼模式下自動隱藏) -->
       <div id="studentSelectorBox" class="no-print mb-5 max-w-md mx-auto bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
         <label for="studentSelector" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
@@ -289,12 +345,15 @@
       </div>
 
       <!-- 後台頁籤選單 -->
-      <div class="flex space-x-2 border-b border-slate-200 mb-6">
-        <button id="adminTabStudentsBtn" onclick="switchAdminTab('students')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition">
+      <div class="flex space-x-2 border-b border-slate-200 mb-6 overflow-x-auto">
+        <button id="adminTabStudentsBtn" onclick="switchAdminTab('students')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap">
           <i class="fa-solid fa-users"></i> 學生名單、積分與勉勵詞 (<span id="studentCountBadge">0</span>)
         </button>
-        <button id="adminTabRewardsBtn" onclick="switchAdminTab('rewards')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition">
+        <button id="adminTabRewardsBtn" onclick="switchAdminTab('rewards')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition whitespace-nowrap">
           <i class="fa-solid fa-gifts"></i> 獎勵兌換項目設定 (<span id="rewardCountBadge">0</span>)
+        </button>
+        <button id="adminTabEventsBtn" onclick="switchAdminTab('events')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition whitespace-nowrap">
+          <i class="fa-solid fa-calendar-days"></i> 班級行事曆與事件管理 (<span id="eventCountBadge">0</span>)
         </button>
       </div>
 
@@ -357,69 +416,87 @@
           <!-- 動態填入老師設定的獎勵項目 -->
         </div>
       </div>
-    </section>
 
-    <!-- ================= 視圖 3: QR Code 批量列印 (Print / QR Codes View) ================= -->
-    <section id="printView" class="hidden">
-      <div class="no-print bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <h3 class="font-bold text-amber-900 text-sm flex items-center gap-2">
-            <i class="fa-solid fa-print"></i> 🌻 向日葵班班 · 專屬 QR Code 小卡
-          </h3>
-          <p class="text-xs text-amber-700 mt-0.5">點擊右方按鈕即可一鍵呼叫瀏覽器列印，將小卡剪裁後貼在學生聯絡簿或課桌上。</p>
+      <!-- 後台分頁 3: 班級行事曆與重要事件設定 -->
+      <div id="adminTabEvents" class="hidden">
+        <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+          <div>
+            <h3 class="text-base font-bold text-slate-800">向日葵班班 重要行事曆設定</h3>
+            <p class="text-xs text-slate-500 mt-0.5">此處設定的重要事項會在首頁自動倒數，並同步至 Google 試算表</p>
+          </div>
+          <button onclick="openAddEventModal()" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-plus"></i> 新增行事曆事件
+          </button>
         </div>
-        <button onclick="window.print()" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition flex items-center gap-2">
-          <i class="fa-solid fa-print"></i> 立即列印全部小卡
-        </button>
-      </div>
 
-      <div id="qrCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <!-- 動態產生 QR Code 卡片 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase font-bold text-slate-500">
+                  <th class="py-3 px-4">日期</th>
+                  <th class="py-3 px-4">倒數天數</th>
+                  <th class="py-3 px-4">事件名稱</th>
+                  <th class="py-3 px-4">類型標籤</th>
+                  <th class="py-3 px-4">備註說明</th>
+                  <th class="py-3 px-4 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody id="adminEventsTableBody" class="divide-y divide-slate-100 text-sm">
+                <!-- 動態填入行事曆事件列表 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
-
-  </main>
-
-  <!-- ================= 模態視窗: 編輯學生歡迎詞 (Welcome Message Modal) ================= -->
-  <div id="welcomeMessageModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+  <!-- ================= 模態視窗: 新增/編輯行事曆事件 (Event Modal) ================= -->
+  <div id="eventModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
-          <i class="fa-solid fa-comment-dots text-amber-500"></i> 設定向日葵班專屬勉勵詞
-        </h3>
-        <button onclick="closeWelcomeMessageModal()" class="text-slate-400 hover:text-slate-600 p-1">
-          <i class="fa-solid fa-xmark"></i>
+      <div class="flex justify-between items-center mb-5">
+        <h3 id="eventModalTitle" class="text-lg font-bold text-slate-800">新增行事曆事件</h3>
+        <button onclick="closeEventModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
         </button>
       </div>
 
-      <div class="text-xs text-slate-500 mb-3">
-        對象：<span id="welcomeModalStudentName" class="font-bold text-orange-600 text-sm">--</span>
-      </div>
+      <form id="eventForm" onsubmit="saveEventItem(event)" class="space-y-4">
+        <input type="hidden" id="editEventId">
 
-      <form id="welcomeMessageForm" onsubmit="saveWelcomeMessage(event)" class="space-y-3.5">
-        <input type="hidden" id="welcomeModalStudentId">
-        
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">歡迎與勉勵詞內容 *</label>
-          <textarea id="welcomeModalInput" rows="3" required placeholder="例如：這週在分組活動表現很棒，繼續保持積極的心情喔！" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
-        </div>
-
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 mb-1.5">快速套用範本：</label>
-          <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="setQuickWelcome('🌻 歡迎來到向日葵班班！今天也要一起快樂學習、發揮最好的實力喔！')" class="text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg border border-amber-200">班級歡迎</button>
-            <button type="button" onclick="setQuickWelcome('🏆 這週作業與課堂表現非常亮眼，老師為你感到驕傲！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">表現優秀</button>
-            <button type="button" onclick="setQuickWelcome('💪 遇到挑戰不要灰心，多向同學與老師提問，你一定做得到！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">加油打氣</button>
-            <button type="button" onclick="setQuickWelcome('📚 距離下一個稱號只差一點點了，今天再爭取加分吧！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">集點衝刺</button>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">事件日期 *</label>
+            <input type="date" id="eventDateInput" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">類型標籤 *</label>
+            <select id="eventTagInput" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500">
+              <option value="考試測驗">📝 考試測驗</option>
+              <option value="作業繳交">📚 作業繳交</option>
+              <option value="戶外活動">🚌 戶外活動</option>
+              <option value="班級活動">🎉 班級活動</option>
+              <option value="學校重要日">🏫 學校重要日</option>
+              <option value="其他">📌 其他提醒</option>
+            </select>
           </div>
         </div>
 
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">事件名稱 / 事項 *</label>
+          <input type="text" id="eventTitleInput" required placeholder="例如: 第一次數學隨堂測驗、科教館校外教學..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">備註說明與注意事項</label>
+          <textarea id="eventDescInput" rows="2" placeholder="例如: 請攜帶水壺與輕便雨衣、範圍第一至第二單元..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
         <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <button type="button" onclick="closeWelcomeMessageModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition">
+          <button type="button" onclick="closeEventModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
             取消
           </button>
-          <button type="submit" class="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition shadow-sm">
-            儲存勉勵詞
+          <button type="submit" class="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition shadow-sm">
+            儲存事件
           </button>
         </div>
       </form>
@@ -790,6 +867,38 @@
     // 預設教師密碼 (僅在未曾設定過自訂密碼時使用)
     const DEFAULT_ADMIN_PASSWORD = "8888";
 
+    // 預設班級行事曆事件
+    const DEFAULT_EVENTS = [
+      {
+        id: "EV01",
+        date: "2026-09-10",
+        title: "第一次數學單元小考",
+        tag: "考試測驗",
+        desc: "測驗範圍：第一單元～第二單元，請記得帶三角板與圓規"
+      },
+      {
+        id: "EV02",
+        date: "2026-09-18",
+        title: "台北科學教育館 校外教學",
+        tag: "戶外活動",
+        desc: "請穿著運動服，自備水壺、悠遊卡與輕便雨衣"
+      },
+      {
+        id: "EV03",
+        date: "2026-09-25",
+        title: "暑假閱讀心得海報繳交",
+        tag: "作業繳交",
+        desc: "請於早自習繳交給各組學藝股長"
+      },
+      {
+        id: "EV04",
+        date: "2026-10-15",
+        title: "向日葵班秋季慶生同樂會",
+        tag: "班級活動",
+        desc: "各小組準備 3 分鐘才藝表演或桌遊分享"
+      }
+    ];
+
     // 預設範例學生名單（包含預設向日葵班歡迎勉勵詞）
     const DEFAULT_STUDENTS = [
       {
@@ -839,7 +948,7 @@
         welcomeMessage: "👑 自主閱讀達標，是向日葵班的榜樣，繼續保持熱情！",
         history: [
           { time: "08/28 16:00", reason: "暑假自主閱讀達標", delta: 15 },
-          { time: "08/30 13:30", reason: "擔任值日生打掃認真", delta: 3 }
+          { time: "08/30 13:30", reason: "擔任值日生打鎖認真", delta: 3 }
         ]
       },
       {
@@ -890,6 +999,7 @@
     // 全域變數狀態
     let students = [];
     let rewards = [];
+    let classEvents = [];
     let adminPassword = DEFAULT_ADMIN_PASSWORD;
     let hasCustomPassword = false;
     let isAdminAuthenticated = false;
@@ -898,6 +1008,7 @@
     let isFetchingGoogleSheet = false;
     let isStudentPersonalMode = false;
     let tempSelectedAvatar = '🌟';
+    let isHomeCalendarExpanded = false;
     let localModifiedTracker = {};
 
     function initApp() {
@@ -991,6 +1102,7 @@
 
         let incomingStudents = null;
         let incomingRewards = null;
+        let incomingEvents = null;
 
         if (Array.isArray(data)) {
           incomingStudents = data;
@@ -999,6 +1111,7 @@
           else if (Array.isArray(data.data)) incomingStudents = data.data;
           
           if (Array.isArray(data.rewards)) incomingRewards = data.rewards;
+          if (Array.isArray(data.events)) incomingEvents = data.events;
           if (data.adminPassword && !hasCustomPassword) {
             adminPassword = String(data.adminPassword);
           }
@@ -1063,6 +1176,16 @@
           }));
         }
 
+        if (incomingEvents && incomingEvents.length > 0) {
+          classEvents = incomingEvents.map((ev, idx) => ({
+            id: String(ev.id || `EV${String(idx+1).padStart(2,'0')}`),
+            date: String(ev.date || ev['日期'] || ''),
+            title: String(ev.title || ev['事件名稱'] || ev['事項'] || ''),
+            tag: String(ev.tag || ev['類型'] || ev['標籤'] || '其他'),
+            desc: String(ev.desc || ev['說明'] || ev['備註'] || '')
+          }));
+        }
+
         saveSystemData();
         refreshAllViews();
 
@@ -1109,6 +1232,15 @@
           rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
         }
 
+        const storedEventsStr = localStorage.getItem('class_points_events');
+        if (storedEventsStr) {
+          classEvents = JSON.parse(storedEventsStr);
+        } else if (window.__eventsStore) {
+          classEvents = window.__eventsStore;
+        } else {
+          classEvents = JSON.parse(JSON.stringify(DEFAULT_EVENTS));
+        }
+
         const savedCustomPwd = localStorage.getItem('class_points_custom_pwd');
         if (savedCustomPwd && savedCustomPwd.trim() !== '') {
           adminPassword = savedCustomPwd;
@@ -1121,6 +1253,7 @@
         console.warn("載入本地快取資料失敗，使用預設值:", e);
         students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
         rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
+        classEvents = JSON.parse(JSON.stringify(DEFAULT_EVENTS));
         adminPassword = DEFAULT_ADMIN_PASSWORD;
       }
     }
@@ -1128,10 +1261,12 @@
     function saveSystemData() {
       window.__studentDataStore = students;
       window.__rewardsStore = rewards;
+      window.__eventsStore = classEvents;
       window.__adminPwdStore = adminPassword;
       try {
         localStorage.setItem('class_points_students', JSON.stringify(students));
         localStorage.setItem('class_points_rewards', JSON.stringify(rewards));
+        localStorage.setItem('class_points_events', JSON.stringify(classEvents));
         if (hasCustomPassword) {
           localStorage.setItem('class_points_custom_pwd', adminPassword);
         }
@@ -1140,7 +1275,7 @@
       }
     }
 
-    // 核心資料雲端發送器 (支援點數、頭像、歡迎勉勵詞雙軌送達)
+    // 核心資料雲端發送器 (支援點數、頭像、歡迎勉勵詞、行事曆事件)
     async function sendDataToGoogleSheets(payload) {
       try {
         fetch(GAS_API_URL, {
@@ -1282,6 +1417,7 @@
         document.getElementById('studentView').classList.remove('hidden');
         if (navStudent) navStudent.className = "px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-white text-orange-600 shadow-sm";
         renderStudentCard();
+        renderHomeCountdownAndCalendar();
       } else if (viewName === 'admin') {
         if (!isAdminAuthenticated) {
           requestAdminAccess('admin');
@@ -1291,6 +1427,7 @@
         if (navAdmin) navAdmin.className = "px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-white text-orange-600 shadow-sm";
         renderAdminTable();
         renderRewardsManager();
+        renderAdminEventsTable();
       } else if (viewName === 'print') {
         if (!isAdminAuthenticated) {
           requestAdminAccess('print');
@@ -1305,29 +1442,38 @@
     function switchAdminTab(tabName) {
       const tabStudents = document.getElementById('adminTabStudents');
       const tabRewards = document.getElementById('adminTabRewards');
+      const tabEvents = document.getElementById('adminTabEvents');
       const btnStudents = document.getElementById('adminTabStudentsBtn');
       const btnRewards = document.getElementById('adminTabRewardsBtn');
+      const btnEvents = document.getElementById('adminTabEventsBtn');
+
+      [tabStudents, tabRewards, tabEvents].forEach(t => t.classList.add('hidden'));
+      [btnStudents, btnRewards, btnEvents].forEach(b => {
+        b.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition whitespace-nowrap";
+      });
 
       if (tabName === 'students') {
         tabStudents.classList.remove('hidden');
-        tabRewards.classList.add('hidden');
-        btnStudents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition";
-        btnRewards.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition";
+        btnStudents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
         renderAdminTable();
-      } else {
-        tabStudents.classList.add('hidden');
+      } else if (tabName === 'rewards') {
         tabRewards.classList.remove('hidden');
-        btnRewards.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition";
-        btnStudents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition";
+        btnRewards.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
         renderRewardsManager();
+      } else if (tabName === 'events') {
+        tabEvents.classList.remove('hidden');
+        btnEvents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
+        renderAdminEventsTable();
       }
     }
 
     function refreshAllViews() {
       updateStudentSelector();
       renderStudentCard();
+      renderHomeCountdownAndCalendar();
       renderAdminTable();
       renderRewardsManager();
+      renderAdminEventsTable();
       renderQRCards();
     }
 
@@ -1358,6 +1504,260 @@
       if (points >= 30) return { name: "黃金勇者 ⚔️", next: 50, max: 50, prev: 30 };
       if (points >= 15) return { name: "進階小達人 🌿", next: 30, max: 30, prev: 15 };
       return { name: "初階探索者 🌟", next: 15, max: 15, prev: 0 };
+    }
+
+    // ================= ⏰ 首頁倒數與行事曆渲染邏輯 =================
+    function getDaysDiff(targetDateStr) {
+      if (!targetDateStr) return 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(targetDateStr);
+      target.setHours(0, 0, 0, 0);
+      const diffTime = target.getTime() - today.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    function getTagBadgeClass(tag) {
+      switch(tag) {
+        case '考試測驗': return 'bg-rose-100 text-rose-800 border-rose-200';
+        case '作業繳交': return 'bg-amber-100 text-amber-900 border-amber-200';
+        case '戶外活動': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        case '班級活動': return 'bg-purple-100 text-purple-800 border-purple-200';
+        case '學校重要日': return 'bg-sky-100 text-sky-800 border-sky-200';
+        default: return 'bg-slate-100 text-slate-800 border-slate-200';
+      }
+    }
+
+    function renderHomeCountdownAndCalendar() {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+      const dateDisplay = document.getElementById('currentDateDisplay');
+      if (dateDisplay) dateDisplay.textContent = dateStr;
+
+      // 排序事件：即將到來的排前面
+      const sortedEvents = [...classEvents].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const upcomingEvents = sortedEvents.filter(ev => getDaysDiff(ev.date) >= 0);
+
+      const titleEl = document.getElementById('countdownEventTitle');
+      const descEl = document.getElementById('countdownEventDesc');
+      const daysNumEl = document.getElementById('countdownDaysNum');
+      const badgeEl = document.getElementById('countdownBadge');
+      const tagEl = document.getElementById('countdownEventTag');
+
+      if (upcomingEvents.length > 0) {
+        const topEvent = upcomingEvents[0];
+        const days = getDaysDiff(topEvent.date);
+
+        titleEl.textContent = topEvent.title;
+        descEl.textContent = topEvent.desc || `日期：${topEvent.date}`;
+        tagEl.textContent = topEvent.tag || '提醒';
+        daysNumEl.textContent = days;
+
+        if (days === 0) {
+          badgeEl.className = "bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse";
+          badgeEl.textContent = "🔥 就是今天";
+        } else if (days <= 3) {
+          badgeEl.className = "bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
+          badgeEl.textContent = `⚡ 倒數 ${days} 天`;
+        } else {
+          badgeEl.className = "bg-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
+          badgeEl.textContent = `📌 倒數中`;
+        }
+      } else if (sortedEvents.length > 0) {
+        const lastEvent = sortedEvents[sortedEvents.length - 1];
+        titleEl.textContent = lastEvent.title;
+        descEl.textContent = "目前無未來事件，此為最近完成事項";
+        tagEl.textContent = lastEvent.tag;
+        daysNumEl.textContent = "0";
+        badgeEl.textContent = "已結束";
+        badgeEl.className = "bg-slate-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
+      } else {
+        titleEl.textContent = "目前尚無排定事件";
+        descEl.textContent = "老師尚未新增班級重要行事曆";
+        tagEl.textContent = "向日葵班班";
+        daysNumEl.textContent = "--";
+        badgeEl.textContent = "無提醒";
+        badgeEl.className = "bg-white/20 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
+      }
+
+      // 渲染列表清單
+      const listContainer = document.getElementById('homeCalendarList');
+      if (!listContainer) return;
+      listContainer.innerHTML = '';
+
+      if (sortedEvents.length === 0) {
+        listContainer.innerHTML = `<div class="text-xs text-amber-100/80 py-2 text-center">暫無其他日程安排</div>`;
+      } else {
+        sortedEvents.forEach(ev => {
+          const diff = getDaysDiff(ev.date);
+          let diffBadge = "";
+          if (diff === 0) diffBadge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500 text-white">今天</span>`;
+          else if (diff > 0) diffBadge = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white">${diff} 天後</span>`;
+          else diffBadge = `<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/20 text-amber-200">已過</span>`;
+
+          const row = document.createElement('div');
+          row.className = "bg-white/10 hover:bg-white/20 p-2.5 rounded-xl border border-white/15 flex items-center justify-between gap-2 transition text-xs";
+          row.innerHTML = `
+            <div class="truncate">
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-amber-200 font-bold">${ev.date.slice(5)}</span>
+                <span class="font-bold text-white truncate">${ev.title}</span>
+                <span class="text-[9px] bg-white/20 text-white px-1.5 py-0.5 rounded">${ev.tag}</span>
+              </div>
+              <p class="text-[10px] text-amber-100/80 truncate mt-0.5">${ev.desc || '無備註'}</p>
+            </div>
+            <div class="flex-shrink-0">
+              ${diffBadge}
+            </div>
+          `;
+          listContainer.appendChild(row);
+        });
+      }
+    }
+
+    function toggleHomeCalendarList() {
+      const list = document.getElementById('homeCalendarList');
+      const chevron = document.getElementById('calendarChevron');
+      const btn = document.getElementById('toggleCalendarBtn');
+      if (!list) return;
+
+      isHomeCalendarExpanded = !isHomeCalendarExpanded;
+      if (isHomeCalendarExpanded) {
+        list.classList.remove('hidden');
+        if (chevron) chevron.className = "fa-solid fa-chevron-up text-[10px]";
+        if (btn) btn.querySelector('span').textContent = "收起日程";
+      } else {
+        list.classList.add('hidden');
+        if (chevron) chevron.className = "fa-solid fa-chevron-down text-[10px]";
+        if (btn) btn.querySelector('span').textContent = "查看全部事項";
+      }
+    }
+
+    // ================= 後台行事曆管理 =================
+    function renderAdminEventsTable() {
+      const tbody = document.getElementById('adminEventsTableBody');
+      const badge = document.getElementById('eventCountBadge');
+      if (badge) badge.textContent = classEvents.length;
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+
+      if (classEvents.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 text-xs">目前尚未設定任何班級行事曆事件</td></tr>`;
+        return;
+      }
+
+      const sorted = [...classEvents].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      sorted.forEach(ev => {
+        const diff = getDaysDiff(ev.date);
+        let countdownText = "";
+        if (diff === 0) countdownText = `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-md text-xs">🔥 今天截止</span>`;
+        else if (diff > 0) countdownText = `<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md text-xs">倒數 ${diff} 天</span>`;
+        else countdownText = `<span class="bg-slate-100 text-slate-400 font-medium px-2 py-0.5 rounded-md text-xs">已結束</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-amber-50/40 transition";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-mono font-bold text-slate-700">${ev.date}</td>
+          <td class="py-3 px-4">${countdownText}</td>
+          <td class="py-3 px-4 font-bold text-slate-800">${ev.title}</td>
+          <td class="py-3 px-4">
+            <span class="text-xs px-2.5 py-1 rounded-full border ${getTagBadgeClass(ev.tag)} font-semibold">
+              ${ev.tag}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-500 max-w-[200px] truncate">${ev.desc || '無'}</td>
+          <td class="py-3 px-4 text-right">
+            <div class="flex items-center justify-end space-x-1.5">
+              <button onclick="openEditEventModal('${ev.id}')" class="text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg text-xs font-medium" title="編輯事件">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteEventItem('${ev.id}')" class="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg text-xs font-medium" title="刪除事件">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openAddEventModal() {
+      document.getElementById('eventModalTitle').textContent = "新增行事曆事件";
+      document.getElementById('editEventId').value = "";
+      document.getElementById('eventDateInput').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('eventTagInput').value = "考試測驗";
+      document.getElementById('eventTitleInput').value = "";
+      document.getElementById('eventDescInput').value = "";
+      document.getElementById('eventModal').classList.remove('hidden');
+    }
+
+    function openEditEventModal(id) {
+      const ev = classEvents.find(e => e.id === id);
+      if (!ev) return;
+
+      document.getElementById('eventModalTitle').textContent = "編輯行事曆事件";
+      document.getElementById('editEventId').value = ev.id;
+      document.getElementById('eventDateInput').value = ev.date;
+      document.getElementById('eventTagInput').value = ev.tag || "其他";
+      document.getElementById('eventTitleInput').value = ev.title;
+      document.getElementById('eventDescInput').value = ev.desc || "";
+      document.getElementById('eventModal').classList.remove('hidden');
+    }
+
+    function closeEventModal() {
+      document.getElementById('eventModal').classList.add('hidden');
+    }
+
+    function saveEventItem(e) {
+      e.preventDefault();
+      const origId = document.getElementById('editEventId').value;
+      const date = document.getElementById('eventDateInput').value;
+      const tag = document.getElementById('eventTagInput').value;
+      const title = document.getElementById('eventTitleInput').value.trim();
+      const desc = document.getElementById('eventDescInput').value.trim();
+
+      if (!date || !title) return;
+
+      if (origId) {
+        const idx = classEvents.findIndex(ev => ev.id === origId);
+        if (idx !== -1) {
+          classEvents[idx] = { id: origId, date, tag, title, desc };
+        }
+        showToast(`事件「${title}」已成功更新`, "success");
+      } else {
+        const newId = "EV" + String(Date.now()).slice(-4);
+        classEvents.push({ id: newId, date, tag, title, desc });
+        showToast(`已新增事件「${title}」`, "success");
+      }
+
+      saveSystemData();
+      closeEventModal();
+      renderAdminEventsTable();
+      renderHomeCountdownAndCalendar();
+
+      // 同步行事曆事件至 Google 試算表
+      sendDataToGoogleSheets({
+        action: "saveEvents",
+        events: classEvents
+      });
+    }
+
+    function deleteEventItem(id) {
+      const item = classEvents.find(e => e.id === id);
+      if (!item) return;
+
+      classEvents = classEvents.filter(e => e.id !== id);
+      saveSystemData();
+      renderAdminEventsTable();
+      renderHomeCountdownAndCalendar();
+      showToast(`已刪除事件「${item.title}」`, "info");
+
+      sendDataToGoogleSheets({
+        action: "saveEvents",
+        events: classEvents
+      });
     }
 
     function renderStudentCard() {
@@ -2118,6 +2518,7 @@
       const exportObject = {
         students: students,
         rewards: rewards,
+        events: classEvents,
         adminPassword: adminPassword,
         exportDate: new Date().toISOString()
       };
@@ -2142,6 +2543,7 @@
           if (parsed.students && Array.isArray(parsed.students)) {
             students = parsed.students;
             if (parsed.rewards && Array.isArray(parsed.rewards)) rewards = parsed.rewards;
+            if (parsed.events && Array.isArray(parsed.events)) classEvents = parsed.events;
             if (parsed.adminPassword) {
               adminPassword = parsed.adminPassword;
               hasCustomPassword = true;
@@ -2153,7 +2555,7 @@
           currentStudentId = students[0]?.id || null;
           saveSystemData();
           refreshAllViews();
-          showToast("成功匯入學生積分與獎勵資料！", "success");
+          showToast("成功匯入學生積分、行事曆與獎勵資料！", "success");
         } catch (err) {
           showToast("檔案讀取失敗，非有效 JSON 檔案", "error");
         }
