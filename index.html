@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>向日葵班學習積分與 QR Code 查詢系統</title>
+  <title>班級學習積分與 QR Code 查詢系統</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 圖示 -->
@@ -50,7 +50,7 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased flex flex-col">
 
   <!-- 頂部導航列 (列印時隱藏) -->
-  <header class="no-print bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+  <header class="no-print bg-indigo-600 text-white shadow-md sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
       <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('student')">
         <div class="bg-white text-indigo-600 w-10 h-10 rounded-full flex items-center justify-center font-black text-xl shadow">
@@ -58,7 +58,7 @@
         </div>
         <div>
           <h1 class="text-lg font-bold tracking-wide">學習存摺積分系統</h1>
-          <p class="text-xs text-indigo-200">學生掃碼專屬查詢 · 班級獎勵點數</p>
+          <p class="text-xs text-indigo-200">學生掃碼專屬查詢 · 獎勵兌換管理</p>
         </div>
       </div>
 
@@ -67,17 +67,20 @@
         <button id="navStudentBtn" onclick="switchView('student')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm">
           <i class="fa-solid fa-mobile-screen"></i> 學生查詢卡
         </button>
-        <button id="navAdminBtn" onclick="switchView('admin')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
-          <i class="fa-solid fa-user-gear"></i> 教師後台
+        <button id="navAdminBtn" onclick="requestAdminAccess('admin')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
+          <i class="fa-solid fa-lock" id="adminLockIcon"></i> 教師後台
         </button>
-        <button id="navPrintBtn" onclick="switchView('print')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
+        <button id="navPrintBtn" onclick="requestAdminAccess('print')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60">
           <i class="fa-solid fa-qrcode"></i> QR Code 列印
+        </button>
+        <button id="navLogoutBtn" onclick="logoutAdmin()" class="hidden px-2.5 py-1.5 rounded-lg font-medium text-rose-200 hover:text-white hover:bg-rose-600/60 transition" title="登出並鎖定後台">
+          <i class="fa-solid fa-right-from-bracket"></i>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- 訊息提示視窗 (Toast / Modal) -->
+  <!-- 訊息提示視窗 (Toast) -->
   <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
     <div class="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-xl flex items-center space-x-3 border border-slate-700">
       <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
@@ -147,14 +150,14 @@
             </div>
           </div>
 
-          <!-- 兌換/獎勵提醒 -->
-          <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center space-x-3 mb-6">
-            <div class="w-9 h-9 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600 flex-shrink-0">
-              <i class="fa-solid fa-gift"></i>
-            </div>
-            <div class="text-xs">
-              <p class="font-bold text-emerald-800">點數兌換獎勵</p>
-              <p class="text-emerald-600 mt-0.5">滿 50 點可兌換作業減免券或免死金牌一張！</p>
+          <!-- 老師自訂獎勵兌換區塊 -->
+          <div class="mb-6">
+            <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center justify-between">
+              <span><i class="fa-solid fa-gift mr-1.5 text-indigo-500"></i> 班級點數獎勵兌換庫</span>
+              <span class="text-[11px] text-slate-400 font-normal">找老師核銷兌換</span>
+            </h3>
+            <div id="studentRewardList" class="space-y-2.5">
+              <!-- 動態填入自訂獎勵清單 -->
             </div>
           </div>
 
@@ -178,76 +181,113 @@
       </div>
     </section>
 
-
     <!-- ================= 視圖 2: 教師後台管理 (Teacher Admin View) ================= -->
     <section id="adminView" class="hidden">
       <!-- 後台操作列 -->
       <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-indigo-600"></i> 班級學生積分管理
-          </h2>
-          <p class="text-xs text-slate-500 mt-0.5">管理學生資料、快速給予點數獎勵或扣分</p>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-sliders text-indigo-600"></i> 教師控制台
+            </h2>
+            <span class="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <i class="fa-solid fa-shield-halved"></i> 密碼保護中
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">管理學生名單、給予積分、自訂獎勵項目與修改後台密碼</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
+          <button onclick="openChangePasswordModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-key"></i> 修改密碼
+          </button>
           <button onclick="openAddStudentModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 shadow-sm">
             <i class="fa-solid fa-user-plus"></i> 新增學生
           </button>
           <button onclick="exportData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-export"></i> 匯出備份
+            <i class="fa-solid fa-file-export"></i> 匯出
           </button>
           <button onclick="document.getElementById('importFileInput').click()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
-            <i class="fa-solid fa-file-import"></i> 匯入備份
+            <i class="fa-solid fa-file-import"></i> 匯入
           </button>
           <input type="file" id="importFileInput" onchange="importData(event)" class="hidden" accept=".json">
-          <button onclick="resetToSampleData()" class="text-rose-500 hover:bg-rose-50 px-3 py-2 rounded-xl text-sm font-medium transition" title="重設回預設範例資料">
-            <i class="fa-solid fa-arrows-rotate"></i> 重置
+          <button onclick="logoutAdmin()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-lock"></i> 鎖定登出
           </button>
         </div>
       </div>
 
-      <!-- 快速加分/搜尋篩選工具 -->
-      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div class="relative flex-1 min-w-[240px]">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input type="text" id="adminSearchInput" oninput="renderAdminTable()" placeholder="搜尋姓名、座號或學號..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+      <!-- 後台頁籤選單 (學生管理 / 獎勵庫設定) -->
+      <div class="flex space-x-2 border-b border-slate-200 mb-6">
+        <button id="adminTabStudentsBtn" onclick="switchAdminTab('students')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition">
+          <i class="fa-solid fa-users"></i> 學生積分管理
+        </button>
+        <button id="adminTabRewardsBtn" onclick="switchAdminTab('rewards')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition">
+          <i class="fa-solid fa-gifts"></i> 獎勵兌換項目設定 (<span id="rewardCountBadge">0</span>)
+        </button>
+      </div>
+
+      <!-- 後台分頁 1: 學生名單與積分管理 -->
+      <div id="adminTabStudents" class="block">
+        <!-- 快速加分/搜尋篩選工具 -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div class="relative flex-1 min-w-[240px]">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text" id="adminSearchInput" oninput="renderAdminTable()" placeholder="搜尋姓名、座號或學號..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+          </div>
+          <div class="flex items-center gap-2 text-xs font-semibold text-slate-600 flex-wrap">
+            <span>快速加分範本：</span>
+            <button onclick="quickBatchAdd('作業優良', 2)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1.5 rounded-lg border border-emerald-200 transition">
+              作業優良 +2
+            </button>
+            <button onclick="quickBatchAdd('主動發言', 1)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg border border-indigo-200 transition">
+              主動發言 +1
+            </button>
+            <button onclick="quickBatchAdd('熱心服務', 3)" class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-lg border border-amber-200 transition">
+              熱心服務 +3
+            </button>
+          </div>
         </div>
-        <div class="flex items-center gap-2 text-xs font-semibold text-slate-600">
-          <span>快速加分範本：</span>
-          <button onclick="quickBatchAdd('作業優良', 2)" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1.5 rounded-lg border border-emerald-200 transition">
-            作業優良 +2
-          </button>
-          <button onclick="quickBatchAdd('主動發言', 1)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg border border-indigo-200 transition">
-            主動發言 +1
-          </button>
-          <button onclick="quickBatchAdd('熱心服務', 3)" class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-2.5 py-1.5 rounded-lg border border-amber-200 transition">
-            熱心服務 +3
-          </button>
+
+        <!-- 學生管理表格 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase font-bold text-slate-500">
+                  <th class="py-3 px-4">座號 / 學號</th>
+                  <th class="py-3 px-4">學生姓名</th>
+                  <th class="py-3 px-4">目前稱號</th>
+                  <th class="py-3 px-4 text-center">積分</th>
+                  <th class="py-3 px-4 text-center">快速調整</th>
+                  <th class="py-3 px-4 text-center">核銷獎勵</th>
+                  <th class="py-3 px-4 text-right">操作</th>
+                </tr>
+              </thead>
+              <tbody id="adminStudentTableBody" class="divide-y divide-slate-100 text-sm">
+                <!-- 動態填入學生列表 -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- 學生管理表格 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase font-bold text-slate-500">
-                <th class="py-3 px-4">座號 / 學號</th>
-                <th class="py-3 px-4">學生姓名</th>
-                <th class="py-3 px-4">目前稱號</th>
-                <th class="py-3 px-4 text-center">積分</th>
-                <th class="py-3 px-4 text-center">快速調整</th>
-                <th class="py-3 px-4 text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody id="adminStudentTableBody" class="divide-y divide-slate-100 text-sm">
-              <!-- 動態填入學生列表 -->
-            </tbody>
-          </table>
+      <!-- 後台分頁 2: 獎勵項目自訂設定 -->
+      <div id="adminTabRewards" class="hidden">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-800">班級獎勵項目清單</h3>
+            <p class="text-xs text-slate-500 mt-0.5">這些獎勵會即時同步給全班學生查詢卡顯示</p>
+          </div>
+          <button onclick="openAddRewardModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-plus"></i> 新增獎勵項目
+          </button>
+        </div>
+
+        <div id="rewardsGridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- 動態填入老師設定的獎勵項目 -->
         </div>
       </div>
     </section>
-
 
     <!-- ================= 視圖 3: QR Code 批量列印 (Print / QR Codes View) ================= -->
     <section id="printView" class="hidden">
@@ -257,14 +297,14 @@
           <h3 class="font-bold text-indigo-900 text-sm flex items-center gap-2">
             <i class="fa-solid fa-print"></i> 學生專屬 QR Code 小卡
           </h3>
-          <p class="text-xs text-indigo-700 mt-0.5">點擊下方按鈕即可一鍵呼叫瀏覽器列印，將小卡剪裁後貼在學生聯絡簿或課桌上。</p>
+          <p class="text-xs text-indigo-700 mt-0.5">點擊右方按鈕即可一鍵呼叫瀏覽器列印，將小卡剪裁後貼在學生聯絡簿或課桌上。</p>
         </div>
         <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition flex items-center gap-2">
           <i class="fa-solid fa-print"></i> 立即列印全部小卡
         </button>
       </div>
 
-      <!-- QR Code 卡片網格 (自適應排列，列印時排版優雅) -->
+      <!-- QR Code 卡片網格 -->
       <div id="qrCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <!-- 動態產生 QR Code 卡片 -->
       </div>
@@ -272,9 +312,76 @@
 
   </main>
 
-  <!-- ================= 模態視窗: 新增/編輯學生 (Modal) ================= -->
+  <!-- ================= 模態視窗: 教師登入密碼驗證 (Admin Login Modal) ================= -->
+  <div id="adminLoginModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+      <div class="text-center mb-5">
+        <div class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-800">教師後台身分驗證</h3>
+        <p class="text-xs text-slate-500 mt-1">請輸入教師管理密碼以繼續操作</p>
+      </div>
+
+      <form id="adminLoginForm" onsubmit="verifyAdminPassword(event)" class="space-y-4">
+        <div>
+          <input type="password" id="inputAdminPassword" required placeholder="請輸入密碼（預設: 8888）" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-center font-mono text-base tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <p class="text-[11px] text-slate-400 mt-1.5 text-center">初次使用預設密碼為：<strong class="text-indigo-600 font-mono">8888</strong></p>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeAdminLoginModal()" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
+            取消
+          </button>
+          <button type="submit" class="w-1/2 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm">
+            確認登入
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 模態視窗: 修改教師密碼 (Change Password Modal) ================= -->
+  <div id="changePasswordModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-key text-indigo-600"></i> 修改後台管理密碼
+        </h3>
+        <button onclick="closeChangePasswordModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="changePasswordForm" onsubmit="saveNewPassword(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">目前密碼 *</label>
+          <input type="password" id="currentPasswordInput" required placeholder="輸入舊密碼" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">新密碼 *</label>
+          <input type="password" id="newPasswordInput" required placeholder="輸入新密碼 (至少4碼)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">再次確認新密碼 *</label>
+          <input type="password" id="confirmNewPasswordInput" required placeholder="再次輸入新密碼" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm">
+            儲存密碼
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 模態視窗: 新增/編輯學生 (Student Modal) ================= -->
   <div id="studentModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
       <div class="flex justify-between items-center mb-5">
         <h3 id="modalTitle" class="text-lg font-bold text-slate-800">新增學生</h3>
         <button onclick="closeStudentModal()" class="text-slate-400 hover:text-slate-600 p-1">
@@ -383,13 +490,109 @@
     </div>
   </div>
 
+  <!-- ================= 模態視窗: 新增/編輯獎勵項目 (Reward Modal) ================= -->
+  <div id="rewardModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex justify-between items-center mb-5">
+        <h3 id="rewardModalTitle" class="text-lg font-bold text-slate-800">設定獎勵項目</h3>
+        <button onclick="closeRewardModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="rewardForm" onsubmit="saveRewardItem(event)" class="space-y-4">
+        <input type="hidden" id="editRewardId">
+
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-1">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">圖示 Emoji</label>
+            <input type="text" id="rewardEmojiInput" value="🎁" class="w-full text-center bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div class="col-span-2">
+            <label class="block text-xs font-semibold text-slate-600 mb-1">所需積分 (PTS) *</label>
+            <input type="number" id="rewardPointsInput" required min="1" placeholder="例如: 30" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">獎勵名稱 *</label>
+          <input type="text" id="rewardTitleInput" required placeholder="例如: 免死金牌、自選座位特權..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">兌換說明與規則</label>
+          <textarea id="rewardDescInput" rows="2" placeholder="例如: 作業可補交一次、可維持一週..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeRewardModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition shadow-sm">
+            儲存獎勵
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= 模態視窗: 學生獎勵核銷 (Claim Reward Modal) ================= -->
+  <div id="claimModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+      <div class="text-center mb-4">
+        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-2 text-xl">
+          <i class="fa-solid fa-gift"></i>
+        </div>
+        <h3 class="text-base font-bold text-slate-800">核銷獎勵兌換</h3>
+        <p class="text-xs text-slate-500 mt-0.5">為學生扣除對應點數並完成兌換紀錄</p>
+      </div>
+
+      <div class="bg-slate-50 p-3 rounded-2xl mb-4 text-xs space-y-1">
+        <div class="flex justify-between text-slate-600">
+          <span>兌換學生：</span>
+          <strong id="claimStudentName" class="text-slate-800">--</strong>
+        </div>
+        <div class="flex justify-between text-slate-600">
+          <span>目前點數：</span>
+          <strong id="claimCurrentPoints" class="text-indigo-600">0 點</strong>
+        </div>
+      </div>
+
+      <form id="claimForm" onsubmit="submitClaimReward(event)" class="space-y-4">
+        <input type="hidden" id="claimStudentId">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">選擇要兌換的獎勵項目 *</label>
+          <select id="claimRewardSelect" required onchange="onClaimRewardSelected(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <!-- 動態填入 -->
+          </select>
+        </div>
+
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+          即將扣除：<span id="claimDeductAmount" class="font-black text-rose-600 text-sm">0</span> 點
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeClaimModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition shadow-sm">
+            確認核銷扣點
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 底部版權宣告 (列印時隱藏) -->
   <footer class="no-print bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-auto">
-    <p>班級學習積分查詢系統 · 支援手機掃描 QR Code 個人化查詢</p>
+    <p>班級學習積分查詢系統 · 支援手機掃描 QR Code 個人化查詢與自訂獎勵</p>
   </footer>
 
   <!-- ================= 系統邏輯 Javascript ================= -->
   <script>
+    // 預設教師密碼
+    const DEFAULT_ADMIN_PASSWORD = "8888";
+
     // 預設範例學生名單
     const DEFAULT_STUDENTS = [
       {
@@ -397,7 +600,7 @@
         seat: 1,
         name: "王小明",
         avatar: "🌟",
-        points: 28,
+        points: 48,
         history: [
           { time: "2026/08/30 09:15", reason: "開學預習表現優異", delta: 5 },
           { time: "2026/08/30 14:20", reason: "主動協助整理班級圖書", delta: 3 },
@@ -409,7 +612,7 @@
         seat: 2,
         name: "李美華",
         avatar: "🦄",
-        points: 42,
+        points: 65,
         history: [
           { time: "2026/08/29 11:30", reason: "英文朗讀流暢生動", delta: 5 },
           { time: "2026/08/30 15:40", reason: "自然實驗組長認真負責", delta: 4 },
@@ -421,7 +624,7 @@
         seat: 3,
         name: "陳冠宇",
         avatar: "🚀",
-        points: 15,
+        points: 18,
         history: [
           { time: "2026/08/30 10:10", reason: "體育課團隊合作精神佳", delta: 3 },
           { time: "2026/08/31 11:20", reason: "上課專注發言", delta: 2 }
@@ -432,7 +635,7 @@
         seat: 4,
         name: "張雅婷",
         avatar: "🦁",
-        points: 56,
+        points: 82,
         history: [
           { time: "2026/08/28 16:00", reason: "暑假自主閱讀達標", delta: 15 },
           { time: "2026/08/30 13:30", reason: "擔任值日生打掃認真", delta: 3 }
@@ -443,32 +646,64 @@
         seat: 5,
         name: "林哲瑋",
         avatar: "🎨",
-        points: 22,
+        points: 32,
         history: [
           { time: "2026/08/30 14:00", reason: "美術作品展覽入選", delta: 8 }
         ]
       }
     ];
 
-    // 全域狀態
-    let students = [];
-    let currentStudentId = null;
-    let qrInstances = {};
+    // 預設教師自訂獎勵清單
+    const DEFAULT_REWARDS = [
+      {
+        id: "R01",
+        emoji: "🎫",
+        title: "免死金牌（作業補交/減免券）",
+        points: 30,
+        desc: "可抵用一次作業遲交或減免一次訂正。"
+      },
+      {
+        id: "R02",
+        emoji: "💺",
+        title: "自選座位特權一週",
+        points: 50,
+        desc: "可自由指定或調整喜愛的座位一週。"
+      },
+      {
+        id: "R03",
+        emoji: "🎁",
+        title: "驚喜文具神秘小禮包",
+        points: 25,
+        desc: "可至教師獎勵箱抽取精美文具一份。"
+      },
+      {
+        id: "R04",
+        emoji: "👑",
+        title: "擔任一日榮譽班長",
+        points: 40,
+        desc: "協助老師發放作業與主持晨讀活動。"
+      }
+    ];
 
-    // 初始化程式
+    // 全域變數狀態
+    let students = [];
+    let rewards = [];
+    let adminPassword = DEFAULT_ADMIN_PASSWORD;
+    let isAdminAuthenticated = false;
+    let currentStudentId = null;
+    let pendingAdminTargetView = 'admin';
+
     window.onload = function() {
-      loadStudentsFromStorage();
+      loadSystemData();
       
       // 解析網址參數 (例如 ?sid=S001 或 ?id=S001)
       const params = new URLSearchParams(window.location.search);
       const urlSid = params.get('sid') || params.get('id');
 
       if (urlSid) {
-        // 如果網址包含學號，優先顯示該學生的卡片
         currentStudentId = urlSid;
         switchView('student');
       } else {
-        // 預設選取第一位學生
         if (students.length > 0) {
           currentStudentId = students[0].id;
         }
@@ -477,23 +712,127 @@
       refreshAllViews();
     };
 
-    // 從記憶體載入學生
-    function loadStudentsFromStorage() {
-      const stored = window.__studentDataStore;
-      if (stored && Array.isArray(stored) && stored.length > 0) {
-        students = stored;
+    function loadSystemData() {
+      // 載入學生名單
+      const storedStudents = window.__studentDataStore;
+      if (storedStudents && Array.isArray(storedStudents) && storedStudents.length > 0) {
+        students = storedStudents;
       } else {
         students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
         window.__studentDataStore = students;
       }
+
+      // 載入獎勵清單
+      const storedRewards = window.__rewardsStore;
+      if (storedRewards && Array.isArray(storedRewards) && storedRewards.length > 0) {
+        rewards = storedRewards;
+      } else {
+        rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
+        window.__rewardsStore = rewards;
+      }
+
+      // 載入後台密碼
+      const storedPwd = window.__adminPwdStore;
+      if (storedPwd) {
+        adminPassword = storedPwd;
+      } else {
+        adminPassword = DEFAULT_ADMIN_PASSWORD;
+        window.__adminPwdStore = adminPassword;
+      }
     }
 
-    // 儲存狀態
-    function saveStudentsToStorage() {
+    function saveSystemData() {
       window.__studentDataStore = students;
+      window.__rewardsStore = rewards;
+      window.__adminPwdStore = adminPassword;
     }
 
-    // 視圖切換 (student / admin / print)
+    // 請求存取受保護的後台視圖 (admin / print)
+    function requestAdminAccess(targetView) {
+      if (isAdminAuthenticated) {
+        switchView(targetView);
+      } else {
+        pendingAdminTargetView = targetView;
+        document.getElementById('inputAdminPassword').value = '';
+        document.getElementById('adminLoginModal').classList.remove('hidden');
+      }
+    }
+
+    function closeAdminLoginModal() {
+      document.getElementById('adminLoginModal').classList.add('hidden');
+    }
+
+    function verifyAdminPassword(e) {
+      e.preventDefault();
+      const entered = document.getElementById('inputAdminPassword').value.trim();
+      if (entered === adminPassword) {
+        isAdminAuthenticated = true;
+        closeAdminLoginModal();
+        updateAdminNavState();
+        switchView(pendingAdminTargetView);
+        showToast("教師身分驗證成功，已進入後台！", "success");
+      } else {
+        showToast("密碼錯誤，請重新輸入！", "error");
+        document.getElementById('inputAdminPassword').select();
+      }
+    }
+
+    function logoutAdmin() {
+      isAdminAuthenticated = false;
+      updateAdminNavState();
+      switchView('student');
+      showToast("已登出並鎖定教師後台", "info");
+    }
+
+    function updateAdminNavState() {
+      const lockIcon = document.getElementById('adminLockIcon');
+      const logoutBtn = document.getElementById('navLogoutBtn');
+      if (isAdminAuthenticated) {
+        lockIcon.className = "fa-solid fa-lock-open text-emerald-300";
+        logoutBtn.classList.remove('hidden');
+      } else {
+        lockIcon.className = "fa-solid fa-lock";
+        logoutBtn.classList.add('hidden');
+      }
+    }
+
+    // 修改密碼 Modal
+    function openChangePasswordModal() {
+      document.getElementById('currentPasswordInput').value = '';
+      document.getElementById('newPasswordInput').value = '';
+      document.getElementById('confirmNewPasswordInput').value = '';
+      document.getElementById('changePasswordModal').classList.remove('hidden');
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById('changePasswordModal').classList.add('hidden');
+    }
+
+    function saveNewPassword(e) {
+      e.preventDefault();
+      const curr = document.getElementById('currentPasswordInput').value.trim();
+      const next = document.getElementById('newPasswordInput').value.trim();
+      const confirm = document.getElementById('confirmNewPasswordInput').value.trim();
+
+      if (curr !== adminPassword) {
+        showToast("目前密碼不正確！", "error");
+        return;
+      }
+      if (next.length < 4) {
+        showToast("新密碼長度至少需要 4 碼！", "error");
+        return;
+      }
+      if (next !== confirm) {
+        showToast("兩次輸入的新密碼不一致！", "error");
+        return;
+      }
+
+      adminPassword = next;
+      saveSystemData();
+      closeChangePasswordModal();
+      showToast("教師後台密碼已成功更新！", "success");
+    }
+
     function switchView(viewName) {
       document.getElementById('studentView').classList.add('hidden');
       document.getElementById('adminView').classList.add('hidden');
@@ -503,7 +842,6 @@
       const navAdmin = document.getElementById('navAdminBtn');
       const navPrint = document.getElementById('navPrintBtn');
 
-      // 重設按鈕樣式
       [navStudent, navAdmin, navPrint].forEach(btn => {
         btn.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600/60";
       });
@@ -513,25 +851,54 @@
         navStudent.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
         renderStudentCard();
       } else if (viewName === 'admin') {
+        if (!isAdminAuthenticated) {
+          requestAdminAccess('admin');
+          return;
+        }
         document.getElementById('adminView').classList.remove('hidden');
         navAdmin.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
         renderAdminTable();
+        renderRewardsManager();
       } else if (viewName === 'print') {
+        if (!isAdminAuthenticated) {
+          requestAdminAccess('print');
+          return;
+        }
         document.getElementById('printView').classList.remove('hidden');
         navPrint.className = "px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm";
         renderQRCards();
       }
     }
 
-    // 重新渲染全部視圖
+    function switchAdminTab(tabName) {
+      const tabStudents = document.getElementById('adminTabStudents');
+      const tabRewards = document.getElementById('adminTabRewards');
+      const btnStudents = document.getElementById('adminTabStudentsBtn');
+      const btnRewards = document.getElementById('adminTabRewardsBtn');
+
+      if (tabName === 'students') {
+        tabStudents.classList.remove('hidden');
+        tabRewards.classList.add('hidden');
+        btnStudents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition";
+        btnRewards.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition";
+        renderAdminTable();
+      } else {
+        tabStudents.classList.add('hidden');
+        tabRewards.classList.remove('hidden');
+        btnRewards.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition";
+        btnStudents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition";
+        renderRewardsManager();
+      }
+    }
+
     function refreshAllViews() {
       updateStudentSelector();
       renderStudentCard();
       renderAdminTable();
+      renderRewardsManager();
       renderQRCards();
     }
 
-    // 更新學生下拉選單
     function updateStudentSelector() {
       const selector = document.getElementById('studentSelector');
       selector.innerHTML = '';
@@ -552,16 +919,14 @@
       renderStudentCard();
     }
 
-    // 計算等級與進度
     function getStudentLevel(points) {
-      if (points >= 100) return { name: "傳奇榮譽大師 👑", next: 150, max: 150, prev: 100, color: "from-amber-400 to-yellow-600" };
-      if (points >= 50) return { name: "鑽石探險家 💎", next: 100, max: 100, prev: 50, color: "from-cyan-400 to-blue-600" };
-      if (points >= 30) return { name: "黃金勇者 ⚔️", next: 50, max: 50, prev: 30, color: "from-amber-300 to-orange-500" };
-      if (points >= 15) return { name: "進階小達人 🌿", next: 30, max: 30, prev: 15, color: "from-emerald-400 to-teal-600" };
-      return { name: "初階探索者 🌟", next: 15, max: 15, prev: 0, color: "from-indigo-400 to-purple-600" };
+      if (points >= 100) return { name: "傳奇榮譽大師 👑", next: 150, max: 150, prev: 100 };
+      if (points >= 50) return { name: "鑽石探險家 💎", next: 100, max: 100, prev: 50 };
+      if (points >= 30) return { name: "黃金勇者 ⚔️", next: 50, max: 50, prev: 30 };
+      if (points >= 15) return { name: "進階小達人 🌿", next: 30, max: 30, prev: 15 };
+      return { name: "初階探索者 🌟", next: 15, max: 15, prev: 0 };
     }
 
-    // ================= 渲染學生卡片 =================
     function renderStudentCard() {
       const student = students.find(s => s.id === currentStudentId) || students[0];
       if (!student) return;
@@ -583,6 +948,45 @@
 
       document.getElementById('cardProgressText').textContent = needed > 0 ? `距離下一階稱號還差 ${needed} 點` : `已達最高稱號榮譽！`;
       document.getElementById('cardProgressBar').style.width = `${percent}%`;
+
+      // 渲染動態兌換獎勵清單
+      const rewardListEl = document.getElementById('studentRewardList');
+      rewardListEl.innerHTML = '';
+
+      if (rewards.length === 0) {
+        rewardListEl.innerHTML = `<div class="text-xs text-slate-400 py-2 text-center">目前無可兌換項目</div>`;
+      } else {
+        rewards.forEach(rw => {
+          const canAfford = student.points >= rw.points;
+          const diff = rw.points - student.points;
+          const div = document.createElement('div');
+          div.className = `p-3 rounded-2xl border flex items-center justify-between gap-2 transition ${
+            canAfford ? 'bg-emerald-50/60 border-emerald-200' : 'bg-slate-50 border-slate-200 opacity-80'
+          }`;
+          div.innerHTML = `
+            <div class="flex items-center space-x-3 overflow-hidden">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${canAfford ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">
+                ${rw.emoji || '🎁'}
+              </div>
+              <div class="truncate">
+                <p class="font-bold text-xs text-slate-800 truncate">${rw.title}</p>
+                <p class="text-[10px] text-slate-400 truncate">${rw.desc || '達到點數即可找老師兌換'}</p>
+              </div>
+            </div>
+            <div class="flex-shrink-0 text-right">
+              <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
+                canAfford ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+              }">
+                ${rw.points} PTS
+              </span>
+              <p class="text-[9px] mt-0.5 font-medium ${canAfford ? 'text-emerald-600 font-bold' : 'text-slate-400'}">
+                ${canAfford ? '✨ 可兌換' : `還差 ${diff} 點`}
+              </p>
+            </div>
+          `;
+          rewardListEl.appendChild(div);
+        });
+      }
 
       // 歷史紀錄
       const historyList = document.getElementById('cardHistoryList');
@@ -612,7 +1016,6 @@
       document.getElementById('cardLastUpdated').textContent = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
     }
 
-    // 複製專屬網址
     function copyCurrentStudentUrl() {
       const baseUrl = window.location.origin + window.location.pathname;
       const targetUrl = `${baseUrl}?sid=${currentStudentId}`;
@@ -630,7 +1033,6 @@
       document.body.removeChild(tempInput);
     }
 
-    // ================= 教師後台渲染 =================
     function renderAdminTable() {
       const tbody = document.getElementById('adminStudentTableBody');
       const keyword = (document.getElementById('adminSearchInput').value || '').trim().toLowerCase();
@@ -643,7 +1045,7 @@
       }).sort((a, b) => a.seat - b.seat);
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 text-xs">查無相符的學生資料</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-slate-400 text-xs">查無相符的學生資料</td></tr>`;
         return;
       }
 
@@ -680,6 +1082,11 @@
               <button onclick="openPointModal('${st.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 h-7 rounded-lg text-xs font-medium transition ml-1">自訂</button>
             </div>
           </td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="openClaimModal('${st.id}')" class="bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 mx-auto" title="核銷獎勵扣點">
+              <i class="fa-solid fa-gift text-amber-500"></i> 核銷兌換
+            </button>
+          </td>
           <td class="py-3 px-4 text-right">
             <div class="flex items-center justify-end space-x-1.5">
               <button onclick="viewStudentProfile('${st.id}')" class="text-indigo-600 hover:bg-indigo-50 p-1.5 rounded-lg text-xs font-medium" title="查看學生視角">
@@ -703,7 +1110,6 @@
       switchView('student');
     }
 
-    // 快速加分
     function quickAddPoints(id, delta, reason) {
       const student = students.find(s => s.id === id);
       if (!student) return;
@@ -713,20 +1119,15 @@
 
       const now = new Date();
       const timeStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-      student.history.push({
-        time: timeStr,
-        reason: reason,
-        delta: delta
-      });
+      student.history.push({ time: timeStr, reason: reason, delta: delta });
 
-      saveStudentsToStorage();
+      saveSystemData();
       renderAdminTable();
       updateStudentSelector();
       if (currentStudentId === id) renderStudentCard();
       showToast(`${student.name} ${delta > 0 ? '+' + delta : delta} 點 (${reason})`, "success");
     }
 
-    // 全班快速加分
     function quickBatchAdd(reason, amount) {
       students.forEach(st => {
         st.points += amount;
@@ -736,18 +1137,190 @@
         st.history.push({ time: timeStr, reason: `[全班] ${reason}`, delta: amount });
       });
 
-      saveStudentsToStorage();
+      saveSystemData();
       renderAdminTable();
       updateStudentSelector();
       renderStudentCard();
       showToast(`全班已批量加上 ${amount} 點 (${reason})`, "success");
     }
 
-    // ================= QR Code 批量產生 (Print View) =================
+    function renderRewardsManager() {
+      const container = document.getElementById('rewardsGridContainer');
+      const badge = document.getElementById('rewardCountBadge');
+      if (badge) badge.textContent = rewards.length;
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      if (rewards.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-12 text-center bg-white rounded-2xl border border-dashed border-slate-300">
+            <i class="fa-solid fa-gift text-slate-300 text-4xl mb-2"></i>
+            <p class="text-sm font-bold text-slate-600">目前尚未設定任何獎勵項目</p>
+            <p class="text-xs text-slate-400 mt-1">點擊右上角「新增獎勵項目」來建立給學生的兌換選項</p>
+          </div>
+        `;
+        return;
+      }
+
+      rewards.forEach(rw => {
+        const card = document.createElement('div');
+        card.className = "bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow-md transition";
+        card.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div class="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+                ${rw.emoji || '🎁'}
+              </div>
+              <span class="bg-indigo-100 text-indigo-800 text-xs font-black px-3 py-1 rounded-full">
+                ${rw.points} 點
+              </span>
+            </div>
+            <h4 class="font-bold text-slate-800 text-base mt-2">${rw.title}</h4>
+            <p class="text-xs text-slate-500 mt-1 leading-relaxed">${rw.desc || '無特定規則說明'}</p>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-4 mt-4 border-t border-slate-100">
+            <button onclick="openEditRewardModal('${rw.id}')" class="text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
+              <i class="fa-solid fa-pen"></i> 編輯
+            </button>
+            <button onclick="deleteRewardItem('${rw.id}')" class="text-xs font-semibold text-rose-500 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
+              <i class="fa-solid fa-trash"></i> 刪除
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openAddRewardModal() {
+      document.getElementById('rewardModalTitle').textContent = "新增獎勵兌換項目";
+      document.getElementById('editRewardId').value = "";
+      document.getElementById('rewardEmojiInput').value = "🎁";
+      document.getElementById('rewardPointsInput').value = "30";
+      document.getElementById('rewardTitleInput').value = "";
+      document.getElementById('rewardDescInput').value = "";
+      document.getElementById('rewardModal').classList.remove('hidden');
+    }
+
+    function openEditRewardModal(id) {
+      const rw = rewards.find(r => r.id === id);
+      if (!rw) return;
+
+      document.getElementById('rewardModalTitle').textContent = "編輯獎勵項目";
+      document.getElementById('editRewardId').value = rw.id;
+      document.getElementById('rewardEmojiInput').value = rw.emoji || "🎁";
+      document.getElementById('rewardPointsInput').value = rw.points;
+      document.getElementById('rewardTitleInput').value = rw.title;
+      document.getElementById('rewardDescInput').value = rw.desc || "";
+      document.getElementById('rewardModal').classList.remove('hidden');
+    }
+
+    function closeRewardModal() {
+      document.getElementById('rewardModal').classList.add('hidden');
+    }
+
+    function saveRewardItem(e) {
+      e.preventDefault();
+      const origId = document.getElementById('editRewardId').value;
+      const emoji = document.getElementById('rewardEmojiInput').value.trim() || "🎁";
+      const points = parseInt(document.getElementById('rewardPointsInput').value, 10) || 10;
+      const title = document.getElementById('rewardTitleInput').value.trim();
+      const desc = document.getElementById('rewardDescInput').value.trim();
+
+      if (origId) {
+        const idx = rewards.findIndex(r => r.id === origId);
+        if (idx !== -1) {
+          rewards[idx] = { id: origId, emoji, points, title, desc };
+        }
+        showToast(`獎勵「${title}」已成功更新`, "success");
+      } else {
+        const newId = "R" + String(Date.now()).slice(-4);
+        rewards.push({ id: newId, emoji, points, title, desc });
+        showToast(`已新增獎勵「${title}」`, "success");
+      }
+
+      saveSystemData();
+      closeRewardModal();
+      renderRewardsManager();
+      renderStudentCard();
+    }
+
+    function deleteRewardItem(id) {
+      const item = rewards.find(r => r.id === id);
+      if (!item) return;
+
+      if (confirm(`確定要刪除獎勵項目「${item.title}」嗎？`)) {
+        rewards = rewards.filter(r => r.id !== id);
+        saveSystemData();
+        renderRewardsManager();
+        renderStudentCard();
+        showToast("獎勵項目已刪除", "info");
+      }
+    }
+
+    // 核銷獎勵 Modal
+    function openClaimModal(studentId) {
+      const student = students.find(s => s.id === studentId);
+      if (!student) return;
+
+      if (rewards.length === 0) {
+        showToast("尚未建立獎勵項目，請先至「獎勵設定」新增！", "error");
+        return;
+      }
+
+      document.getElementById('claimStudentId').value = student.id;
+      document.getElementById('claimStudentName').textContent = `${student.name} (#${student.seat})`;
+      document.getElementById('claimCurrentPoints').textContent = `${student.points} 點`;
+
+      const select = document.getElementById('claimRewardSelect');
+      select.innerHTML = '';
+
+      rewards.forEach(rw => {
+        const opt = document.createElement('option');
+        opt.value = rw.id;
+        opt.textContent = `${rw.emoji || '🎁'} ${rw.title} (扣 ${rw.points} 點)`;
+        select.appendChild(opt);
+      });
+
+      onClaimRewardSelected(rewards[0].id);
+      document.getElementById('claimModal').classList.remove('hidden');
+    }
+
+    function closeClaimModal() {
+      document.getElementById('claimModal').classList.add('hidden');
+    }
+
+    function onClaimRewardSelected(rewardId) {
+      const rw = rewards.find(r => r.id === rewardId);
+      if (rw) {
+        document.getElementById('claimDeductAmount').textContent = rw.points;
+      }
+    }
+
+    function submitClaimReward(e) {
+      e.preventDefault();
+      const studentId = document.getElementById('claimStudentId').value;
+      const rewardId = document.getElementById('claimRewardSelect').value;
+      const student = students.find(s => s.id === studentId);
+      const reward = rewards.find(r => r.id === rewardId);
+
+      if (!student || !reward) return;
+
+      if (student.points < reward.points) {
+        if (!confirm(`該學生目前積分（${student.points} 點）小於獎勵所需點數（${reward.points} 點），仍要強制核銷嗎？`)) {
+          return;
+        }
+      }
+
+      quickAddPoints(student.id, -reward.points, `[兌換獎勵] ${reward.title}`);
+      closeClaimModal();
+      showToast(`已成功為 ${student.name} 核銷兌換「${reward.title}」！`, "success");
+    }
+
     function renderQRCards() {
       const grid = document.getElementById('qrCardsGrid');
       grid.innerHTML = '';
-      qrInstances = {};
 
       const baseUrl = window.location.origin + window.location.pathname;
 
@@ -774,7 +1347,6 @@
         `;
         grid.appendChild(card);
 
-        // 產生 QR Code
         setTimeout(() => {
           const container = document.getElementById(qrContainerId);
           if (container) {
@@ -791,7 +1363,6 @@
       });
     }
 
-    // ================= 模態視窗與表單處理 =================
     function openAddStudentModal() {
       document.getElementById('modalTitle').textContent = "新增學生";
       document.getElementById('editOriginalId').value = "";
@@ -834,14 +1405,12 @@
       const avatar = document.getElementById('inputAvatar').value.trim() || "🌟";
       const points = parseInt(document.getElementById('inputPoints').value, 10) || 0;
 
-      // 檢查代碼重複
       if (!origId && students.some(s => s.id === id)) {
         showToast("學號/代碼不可重複！", "error");
         return;
       }
 
       if (origId) {
-        // 編輯
         const index = students.findIndex(s => s.id === origId);
         if (index !== -1) {
           students[index].seat = seat;
@@ -852,7 +1421,6 @@
         }
         showToast(`已更新 ${name} 的資料`, "success");
       } else {
-        // 新增
         students.push({
           id,
           seat,
@@ -868,7 +1436,7 @@
         showToast(`已新增學生 ${name}`, "success");
       }
 
-      saveStudentsToStorage();
+      saveSystemData();
       closeStudentModal();
       refreshAllViews();
     }
@@ -877,19 +1445,17 @@
       const student = students.find(s => s.id === id);
       if (!student) return;
 
-      // 自訂確認提示 (不用 window.confirm)
       if (confirm(`確定要刪除學生「${student.name}」嗎？所有紀錄將清除。`)) {
         students = students.filter(s => s.id !== id);
         if (currentStudentId === id && students.length > 0) {
           currentStudentId = students[0].id;
         }
-        saveStudentsToStorage();
+        saveSystemData();
         refreshAllViews();
         showToast("學生已成功刪除", "info");
       }
     }
 
-    // ================= 點數自訂調整 Modal =================
     function openPointModal(id) {
       const student = students.find(s => s.id === id);
       if (!student) return;
@@ -926,16 +1492,21 @@
       closePointModal();
     }
 
-    // ================= 匯出與匯入資料備份 =================
     function exportData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(students, null, 2));
+      const exportObject = {
+        students: students,
+        rewards: rewards,
+        adminPassword: adminPassword,
+        exportDate: new Date().toISOString()
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", `class_points_backup_${new Date().toISOString().slice(0,10)}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-      showToast("班級積分資料已成功匯出備份！", "success");
+      showToast("班級積分與獎勵資料已成功匯出備份！", "success");
     }
 
     function importData(e) {
@@ -946,15 +1517,17 @@
       reader.onload = function(evt) {
         try {
           const parsed = JSON.parse(evt.target.result);
-          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
+          if (parsed.students && Array.isArray(parsed.students)) {
+            students = parsed.students;
+            if (parsed.rewards && Array.isArray(parsed.rewards)) rewards = parsed.rewards;
+            if (parsed.adminPassword) adminPassword = parsed.adminPassword;
+          } else if (Array.isArray(parsed)) {
             students = parsed;
-            currentStudentId = students[0].id;
-            saveStudentsToStorage();
-            refreshAllViews();
-            showToast("成功匯入學生積分資料！", "success");
-          } else {
-            showToast("匯入格式不符合，請確認 JSON 格式", "error");
           }
+          currentStudentId = students[0]?.id || null;
+          saveSystemData();
+          refreshAllViews();
+          showToast("成功匯入學生積分與獎勵資料！", "success");
         } catch (err) {
           showToast("檔案讀取失敗，非有效 JSON 檔案", "error");
         }
@@ -963,17 +1536,6 @@
       e.target.value = '';
     }
 
-    function resetToSampleData() {
-      if (confirm("確定要重設回預設範例資料嗎？")) {
-        students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
-        currentStudentId = students[0].id;
-        saveStudentsToStorage();
-        refreshAllViews();
-        showToast("已成功重設回預設範例！", "info");
-      }
-    }
-
-    // ================= 提示通知 (Toast) =================
     function showToast(msg, type = "success") {
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toastMsg');
