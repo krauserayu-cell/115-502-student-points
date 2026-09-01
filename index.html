@@ -143,7 +143,7 @@
             </div>
           </div>
 
-          <h2 id="cardStudentName" class="text-2xl font-black tracking-tight">載入中...</h2>
+          <h2 id="cardStudentName" class="text-2xl font-black tracking-tight">王小明</h2>
           <p id="cardStudentId" class="text-xs text-indigo-100 mt-1 font-mono">專屬代碼: S001</p>
         </div>
 
@@ -154,13 +154,13 @@
               目前累積學習點數
             </span>
             <div class="flex items-center justify-center my-3">
-              <span id="cardPoints" class="text-5xl font-black text-indigo-600 tracking-tight">0</span>
+              <span id="cardPoints" class="text-5xl font-black text-indigo-600 tracking-tight">48</span>
               <span class="text-lg font-bold text-slate-400 ml-2 self-end mb-1">PTS</span>
             </div>
             <!-- 等級徽章與稱號 -->
             <div class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-bold" id="cardBadge">
               <i class="fa-solid fa-medal text-amber-500"></i>
-              <span id="cardLevelName">初階探索者</span>
+              <span id="cardLevelName">黃金勇者 ⚔️</span>
             </div>
           </div>
 
@@ -168,10 +168,10 @@
           <div class="mb-6">
             <div class="flex justify-between text-xs text-slate-500 font-semibold mb-1.5">
               <span>升級進度</span>
-              <span id="cardProgressText">距離下一階段還差 15 點</span>
+              <span id="cardProgressText">距離下一階段還差 2 點</span>
             </div>
             <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200">
-              <div id="cardProgressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" style="width: 45%;"></div>
+              <div id="cardProgressBar" class="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500" style="width: 90%;"></div>
             </div>
           </div>
 
@@ -338,7 +338,7 @@
 
   </main>
 
-  <!-- ================= 模態視窗: 教師登入密碼驗證 (Admin Login Modal) ================= -->
+  <!-- ================= 模態視窗: 教師登入密碼驗證 ================= -->
   <div id="adminLoginModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
       <div class="text-center mb-5">
@@ -366,7 +366,7 @@
     </div>
   </div>
 
-  <!-- ================= 模態視窗: 修改教師密碼 (Change Password Modal) ================= -->
+  <!-- ================= 模態視窗: 修改教師密碼 ================= -->
   <div id="changePasswordModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
       <div class="flex justify-between items-center mb-4">
@@ -404,7 +404,7 @@
     </div>
   </div>
 
-  <!-- ================= 模態視窗: 新增/編輯學生 (Student Modal) ================= -->
+  <!-- ================= 模態視窗: 新增/編輯學生 ================= -->
   <div id="studentModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
       <div class="flex justify-between items-center mb-5">
@@ -466,7 +466,7 @@
     </div>
   </div>
 
-  <!-- ================= 模態視窗: 自訂加減分 (Point Adjust Modal) ================= -->
+  <!-- ================= 模態視窗: 自訂加減分 ================= -->
   <div id="pointModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
       <div class="flex justify-between items-center mb-4">
@@ -515,7 +515,7 @@
     </div>
   </div>
 
-  <!-- ================= 模態視窗: 新增/編輯獎勵項目 (Reward Modal) ================= -->
+  <!-- ================= 模態視窗: 新增/編輯獎勵項目 ================= -->
   <div id="rewardModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
       <div class="flex justify-between items-center mb-5">
@@ -561,7 +561,7 @@
     </div>
   </div>
 
-  <!-- ================= 模態視窗: 學生獎勵核銷 (Claim Reward Modal) ================= -->
+  <!-- ================= 模態視窗: 學生獎勵核銷 ================= -->
   <div id="claimModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
       <div class="text-center mb-4">
@@ -608,7 +608,7 @@
     </div>
   </div>
 
-  <!-- ================= 模態視窗: 學生自訂大頭貼/照片 (Student Avatar Modal) ================= -->
+  <!-- ================= 模態視窗: 學生自訂大頭貼/照片 ================= -->
   <div id="avatarModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
       <div class="flex justify-between items-center mb-4">
@@ -697,7 +697,7 @@
     // 預設教師密碼
     const DEFAULT_ADMIN_PASSWORD = "8888";
 
-    // 預設範例學生名單（保證首次載入立即顯示）
+    // 預設範例學生名單（保證首次載入立即顯示，絕不卡在載入中）
     const DEFAULT_STUDENTS = [
       {
         id: "S001",
@@ -800,33 +800,49 @@
     let isStudentPersonalMode = false;
     let tempSelectedAvatar = '🌟';
 
-    window.onload = function() {
-      // 1. 先從本地快取或預設範例立即載入，消除白屏與卡在「載入中」
+    // 立即啟動主程式（確保即使在各類 iframe 或延遲環境下皆能 100% 即時渲染）
+    function initApp() {
+      // 1. 先從本地快取或預設範例立即載入
       loadSystemData();
       
-      // 2. 解析網址參數 (例如 ?sid=S001 或 ?id=S001)
-      const params = new URLSearchParams(window.location.search);
-      const urlSid = params.get('sid') || params.get('id');
+      // 2. 解析網址參數 (例如 ?sid=S001 或 ?id=1)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const urlSid = params.get('sid') || params.get('id');
 
-      if (urlSid) {
-        currentStudentId = urlSid;
-        isStudentPersonalMode = true;
-        applyStudentPersonalModeUI();
-      } else {
-        isStudentPersonalMode = false;
-        if (students.length > 0 && !currentStudentId) {
-          currentStudentId = students[0].id;
+        if (urlSid) {
+          const matchStudent = students.find(s => 
+            String(s.id).toLowerCase() === String(urlSid).toLowerCase() || 
+            String(s.seat) === String(urlSid)
+          );
+          currentStudentId = matchStudent ? matchStudent.id : urlSid;
+          isStudentPersonalMode = true;
+          applyStudentPersonalModeUI();
+        } else {
+          isStudentPersonalMode = false;
+          if (students.length > 0 && !currentStudentId) {
+            currentStudentId = students[0].id;
+          }
         }
+      } catch (e) {
+        console.warn("URL params parsing ignored:", e);
+        if (students.length > 0) currentStudentId = students[0].id;
       }
 
-      // 3. 立即渲染前端畫面
+      // 3. 立即強制渲染前端所有畫面，消除卡在「載入中」
       refreshAllViews();
 
       // 4. 背景嘗試向 Google 試算表 Web API 同步最新資料
       setTimeout(() => {
         fetchFromGoogleSheets(false);
-      }, 100);
-    };
+      }, 200);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initApp);
+    } else {
+      initApp();
+    }
 
     function applyStudentPersonalModeUI() {
       const selectorBox = document.getElementById('studentSelectorBox');
@@ -1165,7 +1181,11 @@
     }
 
     function renderStudentCard() {
-      const student = students.find(s => s.id === currentStudentId) || students[0];
+      const student = students.find(s => 
+        String(s.id).toLowerCase() === String(currentStudentId).toLowerCase() || 
+        String(s.seat) === String(currentStudentId)
+      ) || students[0];
+
       if (!student) return;
 
       document.getElementById('cardSeatNumber').textContent = `座號 ${String(student.seat).padStart(2, '0')} 號`;
@@ -1585,7 +1605,7 @@
           ${cardAvatarDisplay}
           <h4 class="font-black text-slate-800 text-lg mb-2">${st.name}</h4>
           
-          <div id="${qrContainerId}" class="p-2 bg-white border border-slate-200 rounded-xl shadow-inner flex items-center justify-center mb-3"></div>
+          <div id="${qrContainerId}" class="p-2 bg-white border border-slate-200 rounded-xl shadow-inner flex items-center justify-center mb-3 min-h-[136px]"></div>
           
           <p class="text-[11px] font-semibold text-slate-500">掃描 QR Code 查個人積分</p>
           <p class="text-[9px] text-slate-400 font-mono truncate w-full px-2 mt-0.5">${studentUrl}</p>
@@ -1593,18 +1613,23 @@
         grid.appendChild(card);
 
         setTimeout(() => {
-          const container = document.getElementById(qrContainerId);
-          if (container) {
-            new QRCode(container, {
-              text: studentUrl,
-              width: 120,
-              height: 120,
-              colorDark: "#312e81",
-              colorLight: "#ffffff",
-              correctLevel: QRCode.CorrectLevel.M
-            });
+          try {
+            const container = document.getElementById(qrContainerId);
+            if (container && typeof QRCode !== 'undefined') {
+              container.innerHTML = '';
+              new QRCode(container, {
+                text: studentUrl,
+                width: 120,
+                height: 120,
+                colorDark: "#312e81",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+              });
+            }
+          } catch (qrErr) {
+            console.warn("QR code render delayed:", qrErr);
           }
-        }, 50);
+        }, 100);
       });
     }
 
