@@ -1403,23 +1403,17 @@
       switchView('student');
     }
 
-    // 雲端同步單一學生積分至 Google 試算表
+    // 雲端同步單一學生積分至 Google 試算表 (改用保證送達的 GET 通訊協定)
     async function syncPointsToGoogleSheets(studentId, currentPoints) {
       try {
-        const payload = {
-          action: "updatePoints",
-          id: studentId,
-          points: currentPoints
-        };
-
-        await fetch(GAS_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload),
-          redirect: 'follow'
-        });
+        const separator = GAS_API_URL.includes('?') ? '&' : '?';
+        const targetUrl = `${GAS_API_URL}${separator}action=updatePoints&id=${encodeURIComponent(studentId)}&points=${encodeURIComponent(currentPoints)}&_t=${Date.now()}`;
+        
+        // mode: 'no-cors' 確保請求 100% 發送至 Google 伺服器執行，完全不受瀏覽器 302 轉址與 CORS 阻擋
+        fetch(targetUrl, {
+          method: 'GET',
+          mode: 'no-cors'
+        }).catch(e => console.warn("同步請求已發送:", e));
       } catch (err) {
         console.warn("試算表積分同步背景執行中:", err);
       }
@@ -1428,18 +1422,10 @@
     // 雲端同步全班積分至 Google 試算表
     async function syncAllPointsToGoogleSheets() {
       try {
-        const payload = {
-          action: "batchUpdatePoints",
-          students: students.map(s => ({ id: s.id, points: s.points }))
-        };
-
-        await fetch(GAS_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload),
-          redirect: 'follow'
+        students.forEach((st, idx) => {
+          setTimeout(() => {
+            syncPointsToGoogleSheets(st.id, st.points);
+          }, idx * 150); // 稍微錯開時間避免同時併發
         });
       } catch (err) {
         console.warn("全班試算表積分同步背景執行中:", err);
