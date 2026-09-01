@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>向日葵班級學習積分與 QR Code 查詢系統</title>
+  <title>班級學習積分與 QR Code 查詢系統</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome 圖示 -->
+  <!-- FontAwesome 圖示庫 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- QRCode.js 生成庫 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -30,7 +30,7 @@
     .print-only {
       display: none;
     }
-    /* 自訂捲軸樣式 */
+    /* 自訂平滑捲軸 */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -62,7 +62,7 @@
             <p class="text-xs text-indigo-200">學生個人專屬查詢 · 獎勵兌換</p>
             <!-- 雲端試算表連線狀態燈 -->
             <span id="syncStatusBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/60 text-indigo-100">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 連線中
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 本地就緒
             </span>
           </div>
         </div>
@@ -70,9 +70,9 @@
 
       <!-- 導航切換按鈕區塊 -->
       <div class="flex items-center space-x-2 text-sm">
-        <!-- 學生專屬模式下會動態隱藏這些教師管理選項 -->
+        <!-- 教師導航按鈕 (學生掃碼模式下預設隱藏) -->
         <div id="teacherNavControls" class="flex items-center space-x-2 bg-indigo-700/50 p-1 rounded-xl">
-          <button id="syncNowBtn" onclick="fetchFromGoogleSheets(true)" class="px-2.5 py-1.5 rounded-lg font-medium text-indigo-200 hover:text-white hover:bg-indigo-600/60 transition flex items-center gap-1 text-xs" title="手動向 Google 試算表拉取最新資料">
+          <button id="syncNowBtn" onclick="fetchFromGoogleSheets(true)" class="px-2.5 py-1.5 rounded-lg font-medium text-indigo-200 hover:text-white hover:bg-indigo-600/60 transition flex items-center gap-1 text-xs" title="手動向 Google 試算表同步資料">
             <i class="fa-solid fa-arrows-rotate" id="syncSpinner"></i> 同步
           </button>
           <button id="navStudentBtn" onclick="switchView('student')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm">
@@ -89,7 +89,7 @@
           </button>
         </div>
 
-        <!-- 學生模式下的右上角簡單重新整理按鈕 -->
+        <!-- 學生模式專用重整按鈕 -->
         <button id="studentRefreshBtn" onclick="fetchFromGoogleSheets(true)" class="hidden bg-indigo-700/60 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 border border-indigo-400/40">
           <i class="fa-solid fa-rotate-right"></i> 重新載入
         </button>
@@ -110,7 +110,7 @@
 
     <!-- ================= 視圖 1: 學生專屬查詢頁面 (Student View) ================= -->
     <section id="studentView" class="block">
-      <!-- 學生切換選單 (掃碼帶參數時會自動完全隱藏，防止學生翻閱他人積分) -->
+      <!-- 學生切換選單 (掃碼模式下隱藏) -->
       <div id="studentSelectorBox" class="no-print mb-6 max-w-md mx-auto bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
         <label for="studentSelector" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
           <i class="fa-solid fa-arrow-pointer text-indigo-500 mr-1"></i> 教師預覽與快速切換學生
@@ -133,12 +133,11 @@
             <span id="cardSeatNumber">座號 01 號</span>
           </div>
           
-          <!-- 可點擊更換的頭像容器 -->
-          <div class="relative w-24 h-24 mx-auto mb-3 group cursor-pointer" onclick="openStudentAvatarModal()" title="點擊更換我的個人頭像或上傳照片">
+          <!-- 可點擊更換的個人頭貼 -->
+          <div class="relative w-24 h-24 mx-auto mb-3 group cursor-pointer" onclick="openStudentAvatarModal()" title="點擊更換我的頭像或上傳照片">
             <div class="w-full h-full bg-white/90 backdrop-blur rounded-full p-1 shadow-inner flex items-center justify-center text-4xl overflow-hidden border-2 border-white/60 group-hover:ring-4 group-hover:ring-white/40 transition">
-              <span id="cardAvatar">🌟</span>
+              <span id="cardAvatar" class="w-full h-full flex items-center justify-center">🌟</span>
             </div>
-            <!-- 學生更換頭貼按鈕標籤 -->
             <div class="absolute bottom-0 right-0 bg-indigo-600 hover:bg-indigo-700 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md border-2 border-white transition transform group-hover:scale-110">
               <i class="fa-solid fa-camera"></i>
             </div>
@@ -197,7 +196,6 @@
               <!-- 動態載入點數紀錄 -->
             </div>
           </div>
-
         </div>
 
         <!-- 底部更新時間 -->
@@ -248,7 +246,7 @@
         </div>
       </div>
 
-      <!-- 後台頁籤選單 (學生管理 / 獎勵庫設定) -->
+      <!-- 後台頁籤選單 -->
       <div class="flex space-x-2 border-b border-slate-200 mb-6">
         <button id="adminTabStudentsBtn" onclick="switchAdminTab('students')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 transition">
           <i class="fa-solid fa-users"></i> 學生積分管理
@@ -260,7 +258,6 @@
 
       <!-- 後台分頁 1: 學生名單與積分管理 -->
       <div id="adminTabStudents" class="block">
-        <!-- 快速加分/搜尋篩選工具 -->
         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
           <div class="relative flex-1 min-w-[240px]">
             <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm"></i>
@@ -280,7 +277,6 @@
           </div>
         </div>
 
-        <!-- 學生管理表格 -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -323,7 +319,6 @@
 
     <!-- ================= 視圖 3: QR Code 批量列印 (Print / QR Codes View) ================= -->
     <section id="printView" class="hidden">
-      <!-- 列印模式提示列 (列印時隱藏) -->
       <div class="no-print bg-indigo-50 border border-indigo-200 rounded-2xl p-4 mb-6 flex flex-wrap justify-between items-center gap-4">
         <div>
           <h3 class="font-bold text-indigo-900 text-sm flex items-center gap-2">
@@ -336,7 +331,6 @@
         </button>
       </div>
 
-      <!-- QR Code 卡片網格 -->
       <div id="qrCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <!-- 動態產生 QR Code 卡片 -->
       </div>
@@ -578,6 +572,42 @@
         <p class="text-xs text-slate-500 mt-0.5">為學生扣除對應點數並完成兌換紀錄</p>
       </div>
 
+      <div class="bg-slate-50 p-3 rounded-2xl mb-4 text-xs space-y-1">
+        <div class="flex justify-between text-slate-600">
+          <span>兌換學生：</span>
+          <strong id="claimStudentName" class="text-slate-800">--</strong>
+        </div>
+        <div class="flex justify-between text-slate-600">
+          <span>目前點數：</span>
+          <strong id="claimCurrentPoints" class="text-indigo-600">0 點</strong>
+        </div>
+      </div>
+
+      <form id="claimForm" onsubmit="submitClaimReward(event)" class="space-y-4">
+        <input type="hidden" id="claimStudentId">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">選擇要兌換的獎勵項目 *</label>
+          <select id="claimRewardSelect" required onchange="onClaimRewardSelected(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <!-- 動態填入 -->
+          </select>
+        </div>
+
+        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
+          即將扣除：<span id="claimDeductAmount" class="font-black text-rose-600 text-sm">0</span> 點
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="button" onclick="closeClaimModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition shadow-sm">
+            確認核銷扣點
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= 模態視窗: 學生自訂大頭貼/照片 (Student Avatar Modal) ================= -->
   <div id="avatarModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
@@ -593,7 +623,7 @@
       <!-- 目前預覽 -->
       <div class="text-center mb-5">
         <div class="w-20 h-20 mx-auto rounded-full bg-slate-100 border-2 border-indigo-200 flex items-center justify-center text-4xl overflow-hidden shadow-inner mb-2" id="avatarPreviewBox">
-          <span id="avatarPreviewSpan">🌟</span>
+          <span id="avatarPreviewSpan" class="w-full h-full flex items-center justify-center">🌟</span>
         </div>
         <p class="text-xs text-slate-500 font-medium">即將套用的個人頭像預覽</p>
       </div>
@@ -653,7 +683,6 @@
   <footer class="no-print bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 mt-auto">
     <div class="max-w-6xl mx-auto px-4 flex flex-wrap justify-between items-center gap-2">
       <p>班級學習積分查詢系統 · 支援手機掃描 QR Code 個人化查詢</p>
-      <!-- 學生模式下的隱藏式教師管理入口 -->
       <button id="footerTeacherEntryBtn" onclick="requestAdminAccess('admin')" class="text-slate-400 hover:text-indigo-600 text-[11px] flex items-center gap-1 transition">
         <i class="fa-solid fa-lock text-[10px]"></i> 教師管理登入
       </button>
@@ -668,7 +697,7 @@
     // 預設教師密碼
     const DEFAULT_ADMIN_PASSWORD = "8888";
 
-    // 預設範例學生名單（離線備援與初次載入用）
+    // 預設範例學生名單（保證首次載入立即顯示）
     const DEFAULT_STUDENTS = [
       {
         id: "S001",
@@ -677,9 +706,9 @@
         avatar: "🌟",
         points: 48,
         history: [
-          { time: "2026/08/30 09:15", reason: "開學預習表現優異", delta: 5 },
-          { time: "2026/08/30 14:20", reason: "主動協助整理班級圖書", delta: 3 },
-          { time: "2026/08/31 10:00", reason: "數學隨堂測驗滿分", delta: 10 }
+          { time: "09/01 09:15", reason: "開學預習表現優異", delta: 5 },
+          { time: "09/01 14:20", reason: "主動協助整理班級圖書", delta: 3 },
+          { time: "09/01 10:00", reason: "數學隨堂測驗滿分", delta: 10 }
         ]
       },
       {
@@ -689,9 +718,9 @@
         avatar: "🦄",
         points: 65,
         history: [
-          { time: "2026/08/29 11:30", reason: "英文朗讀流暢生動", delta: 5 },
-          { time: "2026/08/30 15:40", reason: "自然實驗組長認真負責", delta: 4 },
-          { time: "2026/08/31 08:30", reason: "準時繳交作業且字體工整", delta: 2 }
+          { time: "08/29 11:30", reason: "英文朗讀流暢生動", delta: 5 },
+          { time: "08/30 15:40", reason: "自然實驗組長認真負責", delta: 4 },
+          { time: "08/31 08:30", reason: "準時繳交作業且字體工整", delta: 2 }
         ]
       },
       {
@@ -701,8 +730,8 @@
         avatar: "🚀",
         points: 18,
         history: [
-          { time: "2026/08/30 10:10", reason: "體育課團隊合作精神佳", delta: 3 },
-          { time: "2026/08/31 11:20", reason: "上課專注發言", delta: 2 }
+          { time: "08/30 10:10", reason: "體育課團隊合作精神佳", delta: 3 },
+          { time: "08/31 11:20", reason: "上課專注發言", delta: 2 }
         ]
       },
       {
@@ -712,8 +741,8 @@
         avatar: "🦁",
         points: 82,
         history: [
-          { time: "2026/08/28 16:00", reason: "暑假自主閱讀達標", delta: 15 },
-          { time: "2026/08/30 13:30", reason: "擔任值日生打掃認真", delta: 3 }
+          { time: "08/28 16:00", reason: "暑假自主閱讀達標", delta: 15 },
+          { time: "08/30 13:30", reason: "擔任值日生打掃認真", delta: 3 }
         ]
       },
       {
@@ -723,7 +752,7 @@
         avatar: "🎨",
         points: 32,
         history: [
-          { time: "2026/08/30 14:00", reason: "美術作品展覽入選", delta: 8 }
+          { time: "08/30 14:00", reason: "美術作品展覽入選", delta: 8 }
         ]
       }
     ];
@@ -768,55 +797,46 @@
     let currentStudentId = null;
     let pendingAdminTargetView = 'admin';
     let isFetchingGoogleSheet = false;
-    let isStudentPersonalMode = false; // 是否為學生專屬掃碼模式
-    let tempSelectedAvatar = '🌟'; // 暫存正在挑選的頭貼
+    let isStudentPersonalMode = false;
+    let tempSelectedAvatar = '🌟';
 
     window.onload = function() {
+      // 1. 先從本地快取或預設範例立即載入，消除白屏與卡在「載入中」
       loadSystemData();
       
-      // 解析網址參數 (例如 ?sid=S001 或 ?id=S001)
+      // 2. 解析網址參數 (例如 ?sid=S001 或 ?id=S001)
       const params = new URLSearchParams(window.location.search);
       const urlSid = params.get('sid') || params.get('id');
 
       if (urlSid) {
-        // 學生掃碼專屬模式：鎖定只看該學生，隱藏切換選單與管理按鈕
         currentStudentId = urlSid;
         isStudentPersonalMode = true;
         applyStudentPersonalModeUI();
-        switchView('student');
       } else {
-        // 一般模式（老師直接開啟）
         isStudentPersonalMode = false;
-        if (students.length > 0) {
+        if (students.length > 0 && !currentStudentId) {
           currentStudentId = students[0].id;
         }
       }
 
+      // 3. 立即渲染前端畫面
       refreshAllViews();
 
-      // 開啟網頁時自動向 Google 試算表 Web API 同步最新資料
-      fetchFromGoogleSheets(false);
+      // 4. 背景嘗試向 Google 試算表 Web API 同步最新資料
+      setTimeout(() => {
+        fetchFromGoogleSheets(false);
+      }, 100);
     };
 
-    // 套用「學生專屬個人模式」UI 限制
     function applyStudentPersonalModeUI() {
-      // 1. 隱藏學生切換選單
       const selectorBox = document.getElementById('studentSelectorBox');
-      if (selectorBox) {
-        selectorBox.style.display = 'none';
-      }
+      if (selectorBox) selectorBox.style.display = 'none';
 
-      // 2. 隱藏頂部教師導航按鈕（後台、QR Code 列印、加分等）
       const teacherControls = document.getElementById('teacherNavControls');
-      if (teacherControls) {
-        teacherControls.classList.add('hidden');
-      }
+      if (teacherControls) teacherControls.classList.add('hidden');
 
-      // 3. 顯示學生專用簡易重新整理按鈕
       const studentRefreshBtn = document.getElementById('studentRefreshBtn');
-      if (studentRefreshBtn) {
-        studentRefreshBtn.classList.remove('hidden');
-      }
+      if (studentRefreshBtn) studentRefreshBtn.classList.remove('hidden');
     }
 
     async function fetchFromGoogleSheets(showUserFeedback = false) {
@@ -836,16 +856,19 @@
       }
 
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000); // 6秒超時保護
+
         const response = await fetch(GAS_API_URL, {
           method: 'GET',
           redirect: 'follow',
-          headers: {
-            'Accept': 'application/json'
-          }
+          signal: controller.signal
         });
 
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
-          throw new Error(`HTTP 錯誤碼: ${response.status}`);
+          throw new Error(`HTTP 錯誤: ${response.status}`);
         }
 
         const data = await response.json();
@@ -896,20 +919,20 @@
 
         if (statusBadge) {
           statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/80 text-white";
-          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white"></span> 試算表已連線`;
+          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white"></span> 試算表已同步`;
         }
 
         if (showUserFeedback) {
           showToast("已成功同步最新積分與獎勵！", "success");
         }
       } catch (err) {
-        console.warn("Google Apps Script 同步未完成或使用本機快取:", err);
+        console.warn("Google Apps Script 同步離線或超時，使用本地資料:", err);
         if (statusBadge) {
           statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/60 text-indigo-100";
-          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-300"></span> 離線暫存模式`;
+          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-300"></span> 本地就緒`;
         }
         if (showUserFeedback) {
-          showToast("已載入最新個人積分資料", "info");
+          showToast("已顯示最新本地存摺資料", "info");
         }
       } finally {
         isFetchingGoogleSheet = false;
@@ -949,7 +972,6 @@
       window.__adminPwdStore = adminPassword;
     }
 
-    // 請求存取受保護的後台視圖 (admin / print)
     function requestAdminAccess(targetView) {
       if (isAdminAuthenticated) {
         switchView(targetView);
@@ -971,7 +993,6 @@
         isAdminAuthenticated = true;
         closeAdminLoginModal();
         
-        // 解鎖後顯示教師導航列
         const teacherControls = document.getElementById('teacherNavControls');
         if (teacherControls) {
           teacherControls.classList.remove('hidden');
@@ -990,7 +1011,6 @@
       isAdminAuthenticated = false;
       updateAdminNavState();
       
-      // 如果原本是學生專屬模式，登出時恢復隱藏教師控制項
       if (isStudentPersonalMode) {
         applyStudentPersonalModeUI();
       }
@@ -1011,7 +1031,6 @@
       }
     }
 
-    // 修改密碼 Modal
     function openChangePasswordModal() {
       document.getElementById('currentPasswordInput').value = '';
       document.getElementById('newPasswordInput').value = '';
@@ -1151,7 +1170,6 @@
 
       document.getElementById('cardSeatNumber').textContent = `座號 ${String(student.seat).padStart(2, '0')} 號`;
       
-      // 支援 Emoji 與 圖片 URL/Base64 大頭貼
       const cardAvatarEl = document.getElementById('cardAvatar');
       const avatarVal = student.avatar || '🌟';
       if (avatarVal.startsWith('data:image/') || avatarVal.startsWith('http://') || avatarVal.startsWith('https://')) {
@@ -1164,7 +1182,6 @@
       document.getElementById('cardStudentId').textContent = `專屬代碼: ${student.id}`;
       document.getElementById('cardPoints').textContent = student.points;
 
-      // 等級與進度
       const levelInfo = getStudentLevel(student.points);
       document.getElementById('cardLevelName').textContent = levelInfo.name;
       
@@ -1176,7 +1193,6 @@
       document.getElementById('cardProgressText').textContent = needed > 0 ? `距離下一階稱號還差 ${needed} 點` : `已達最高稱號榮譽！`;
       document.getElementById('cardProgressBar').style.width = `${percent}%`;
 
-      // 渲染動態兌換獎勵清單
       const rewardListEl = document.getElementById('studentRewardList');
       rewardListEl.innerHTML = '';
 
@@ -1215,7 +1231,6 @@
         });
       }
 
-      // 歷史紀錄
       const historyList = document.getElementById('cardHistoryList');
       historyList.innerHTML = '';
 
@@ -1281,7 +1296,6 @@
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50/80 transition";
         
-        // 處理表格頭像 (Emoji 或 圖片)
         let avatarDisplay = `<span class="text-lg">${st.avatar || '🌟'}</span>`;
         if (st.avatar && (st.avatar.startsWith('data:image/') || st.avatar.startsWith('http'))) {
           avatarDisplay = `<img src="${st.avatar}" class="w-7 h-7 rounded-full object-cover border border-slate-200">`;
@@ -1352,7 +1366,7 @@
       if (!student.history) student.history = [];
 
       const now = new Date();
-      const timeStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
       student.history.push({ time: timeStr, reason: reason, delta: delta });
 
       saveSystemData();
@@ -1367,7 +1381,7 @@
         st.points += amount;
         if (!st.history) st.history = [];
         const now = new Date();
-        const timeStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
         st.history.push({ time: timeStr, reason: `[全班] ${reason}`, delta: amount });
       });
 
@@ -1484,13 +1498,11 @@
       const item = rewards.find(r => r.id === id);
       if (!item) return;
 
-      if (confirm(`確定要刪除獎勵項目「${item.title}」嗎？`)) {
-        rewards = rewards.filter(r => r.id !== id);
-        saveSystemData();
-        renderRewardsManager();
-        renderStudentCard();
-        showToast("獎勵項目已刪除", "info");
-      }
+      rewards = rewards.filter(r => r.id !== id);
+      saveSystemData();
+      renderRewardsManager();
+      renderStudentCard();
+      showToast(`已刪除獎勵項目「${item.title}」`, "info");
     }
 
     function openClaimModal(studentId) {
@@ -1539,12 +1551,6 @@
       const reward = rewards.find(r => r.id === rewardId);
 
       if (!student || !reward) return;
-
-      if (student.points < reward.points) {
-        if (!confirm(`該學生目前積分（${student.points} 點）小於獎勵所需點數（${reward.points} 點），仍要強制核銷嗎？`)) {
-          return;
-        }
-      }
 
       quickAddPoints(student.id, -reward.points, `[兌換獎勵] ${reward.title}`);
       closeClaimModal();
@@ -1667,7 +1673,7 @@
           avatar,
           points,
           history: [{
-            time: new Date().toLocaleString('zh-TW'),
+            time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
             reason: "建立學生帳號",
             delta: points
           }]
@@ -1684,8 +1690,51 @@
       const student = students.find(s => s.id === id);
       if (!student) return;
 
-      if (confirm(`確定要刪除學生「${student.name}」嗎？所有紀錄將清除。`)) {
-    // ================= 學生自訂頭像相關邏輯 =================
+      students = students.filter(s => s.id !== id);
+      if (currentStudentId === id && students.length > 0) {
+        currentStudentId = students[0].id;
+      }
+      saveSystemData();
+      refreshAllViews();
+      showToast(`學生 ${student.name} 已成功刪除`, "info");
+    }
+
+    function openPointModal(id) {
+      const student = students.find(s => s.id === id);
+      if (!student) return;
+
+      document.getElementById('pointStudentId').value = student.id;
+      document.getElementById('pointModalStudentName').textContent = `${student.name} (#${student.seat})`;
+      document.getElementById('pointModalCurrentPoints').textContent = student.points;
+      document.getElementById('pointChangeAmount').value = "";
+      document.getElementById('pointReason').value = "";
+      document.getElementById('pointModal').classList.remove('hidden');
+    }
+
+    function closePointModal() {
+      document.getElementById('pointModal').classList.add('hidden');
+    }
+
+    function setQuickReason(reason, amount) {
+      document.getElementById('pointReason').value = reason;
+      document.getElementById('pointChangeAmount').value = amount;
+    }
+
+    function submitPointAdjustment(e) {
+      e.preventDefault();
+      const id = document.getElementById('pointStudentId').value;
+      const amount = parseInt(document.getElementById('pointChangeAmount').value, 10);
+      const reason = document.getElementById('pointReason').value.trim();
+
+      if (isNaN(amount) || !reason) {
+        showToast("請填寫有效的變更點數與原因", "error");
+        return;
+      }
+
+      quickAddPoints(id, amount, reason);
+      closePointModal();
+    }
+
     function openStudentAvatarModal() {
       const student = students.find(s => s.id === currentStudentId) || students[0];
       if (!student) return;
@@ -1724,7 +1773,6 @@
       }
     }
 
-    // 處理學生拍照或圖片上傳 (自動壓縮並裁切)
     function handleAvatarFileUpload(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -1738,14 +1786,12 @@
       reader.onload = function(event) {
         const img = new Image();
         img.onload = function() {
-          // 使用 Canvas 壓縮圖片至 160x160 以免佔用大量記憶體
           const canvas = document.createElement('canvas');
           const size = 160;
           canvas.width = size;
           canvas.height = size;
           const ctx = canvas.getContext('2d');
 
-          // 正方形居中裁切
           const minDim = Math.min(img.width, img.height);
           const startX = (img.width - minDim) / 2;
           const startY = (img.height - minDim) / 2;
@@ -1773,6 +1819,50 @@
       renderAdminTable();
       closeStudentAvatarModal();
       showToast("個人頭像已成功更新！✨", "success");
+    }
+
+    function exportData() {
+      const exportObject = {
+        students: students,
+        rewards: rewards,
+        adminPassword: adminPassword,
+        exportDate: new Date().toISOString()
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `class_points_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("班級積分與獎勵資料已成功匯出備份！", "success");
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (parsed.students && Array.isArray(parsed.students)) {
+            students = parsed.students;
+            if (parsed.rewards && Array.isArray(parsed.rewards)) rewards = parsed.rewards;
+            if (parsed.adminPassword) adminPassword = parsed.adminPassword;
+          } else if (Array.isArray(parsed)) {
+            students = parsed;
+          }
+          currentStudentId = students[0]?.id || null;
+          saveSystemData();
+          refreshAllViews();
+          showToast("成功匯入學生積分與獎勵資料！", "success");
+        } catch (err) {
+          showToast("檔案讀取失敗，非有效 JSON 檔案", "error");
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
     }
 
     function showToast(msg, type = "success") {
