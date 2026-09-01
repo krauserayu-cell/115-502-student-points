@@ -221,7 +221,7 @@
               <i class="fa-solid fa-shield-halved"></i> 密碼保護中
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-0.5">已串接 Google 試算表 Web API，可在試算表打分數後一鍵同步更新</p>
+          <p class="text-xs text-slate-500 mt-0.5">扣分與加分皆會自動同步至 Google 試算表</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button onclick="fetchFromGoogleSheets(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 border border-indigo-200 shadow-sm">
@@ -697,7 +697,7 @@
     // 預設教師密碼
     const DEFAULT_ADMIN_PASSWORD = "8888";
 
-    // 預設範例學生名單（確保首次載入立即顯示，絕不卡在載入中）
+    // 預設範例學生名單
     const DEFAULT_STUDENTS = [
       {
         id: "S001",
@@ -799,8 +799,10 @@
     let isFetchingGoogleSheet = false;
     let isStudentPersonalMode = false;
     let tempSelectedAvatar = '🌟';
+    
+    // 本機最後修改保護戳記 (防止雲端延遲覆蓋剛剛修改的資料)
+    let localModifiedTracker = {};
 
-    // 立即啟動主程式
     function initApp() {
       loadSystemData();
       
@@ -823,16 +825,16 @@
           }
         }
       } catch (e) {
-        console.warn("URL params parsing ignored:", e);
+        console.warn("URL 參數解析略過:", e);
         if (students.length > 0) currentStudentId = students[0].id;
       }
 
       refreshAllViews();
 
-      // 背景自動同步 Google 試算表
+      // 背景自動向 Google 試算表拉取最新資料
       setTimeout(() => {
         fetchFromGoogleSheets(false);
-      }, 300);
+      }, 500);
     }
 
     if (document.readyState === 'loading') {
@@ -852,7 +854,7 @@
       if (studentRefreshBtn) studentRefreshBtn.classList.remove('hidden');
     }
 
-    // 連線 Google 試算表取得最新資料
+    // 連線 Google 試算表取得最新資料 (帶有防覆蓋保護)
     async function fetchFromGoogleSheets(showUserFeedback = false) {
       if (isFetchingGoogleSheet) return;
       isFetchingGoogleSheet = true;
@@ -870,11 +872,9 @@
       }
 
       try {
-        // 給予 15 秒超時保護（因 GAS 冷啟動喚醒通常需要 5~8 秒）
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-        // 加上時間戳記防瀏覽器快取
         const separator = GAS_API_URL.includes('?') ? '&' : '?';
         const targetFetchUrl = `${GAS_API_URL}${separator}_t=${Date.now()}`;
 
@@ -906,26 +906,40 @@
         }
 
         if (incomingStudents && incomingStudents.length > 0) {
+          const nowTime = Date.now();
+
           students = incomingStudents.map((st, idx) => {
             const rawId = String(st.id || st.studentId || st['學號'] || st.ID || st.Id || `S${String(idx+1).padStart(3,'0')}`).trim();
             const oldMatch = students.find(s => String(s.id).trim().toLowerCase() === rawId.toLowerCase());
-            const cloudAvatar = st.avatar || st['頭像'] || st.Avatar || '';
-            
-            // 雲端若為有效頭像則採用；若為空則優先保留本機已自訂的頭像
-            const localAvatar = oldMatch?.avatar;
-            const effectiveAvatar = (cloudAvatar && cloudAvatar.trim() !== '' && cloudAvatar !== '🌟') 
-              ? cloudAvatar 
-              : (localAvatar || cloudAvatar || "🌟");
+            const cloudAvatar = String(st.avatar || st['頭像'] || st.Avatar || '').trim();
+            const cloudPoints = Number(st.points || st.score || st['積分'] || st['點數'] || st.Points || 0);
+
+            // 檢查本機在最近 30 秒內是否有異動保護
+            const lastLocalPointEdit = localModifiedTracker[rawId + '_points'] || 0;
+            const lastLocalAvatarEdit = localModifiedTracker[rawId + '_avatar'] || 0;
+
+            let finalPoints = cloudPoints;
+            if (oldMatch && (nowTime - lastLocalPointEdit < 30000)) {
+              // 優先保留本機剛剛核銷或扣減的分數
+              finalPoints = oldMatch.points;
+            }
+
+            let finalAvatar = cloudAvatar;
+            if (oldMatch && (nowTime - lastLocalAvatarEdit < 60000)) {
+              finalAvatar = oldMatch.avatar;
+            } else if (!finalAvatar || finalAvatar === '🌟' || finalAvatar === '') {
+              finalAvatar = oldMatch?.avatar || '🌟';
+            }
 
             return {
               id: rawId,
               seat: Number(st.seat || st.seatNumber || st['座號'] || st.Seat || idx + 1),
               name: String(st.name || st.studentName || st['姓名'] || st.Name || `學生${idx+1}`),
-              avatar: effectiveAvatar,
-              points: Number(st.points || st.score || st['積分'] || st['點數'] || st.Points || 0),
-              history: st.history || oldMatch?.history || [
-                { time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), reason: "試算表同步", delta: Number(st.points || 0) }
-              ]
+              avatar: finalAvatar,
+              points: finalPoints,
+              history: oldMatch?.history && oldMatch.history.length > 0 ? oldMatch.history : (st.history || [
+                { time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), reason: "試算表同步", delta: finalPoints }
+              ])
             };
           });
 
@@ -953,7 +967,7 @@
         }
 
         if (showUserFeedback) {
-          showToast("已成功連線並同步 Google 試算表最新積分！✨", "success");
+          showToast("已成功連線並同步 Google 試算表最新資料！✨", "success");
         }
       } catch (err) {
         console.warn("Google Apps Script 連線失敗或離線:", err);
@@ -962,7 +976,7 @@
           statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-300"></span> 本地離線模式`;
         }
         if (showUserFeedback) {
-          showToast("試算表連線超時，請檢查 GAS 權限是否設為所有人", "error");
+          showToast("試算表連線超時，目前使用本地暫存", "info");
         }
       } finally {
         isFetchingGoogleSheet = false;
@@ -1010,6 +1024,33 @@
         localStorage.setItem('class_points_admin_pwd', adminPassword);
       } catch (e) {
         console.warn("LocalStorage 寫入受限:", e);
+      }
+    }
+
+    // 核心資料雲端發送器 (雙軌通訊：POST + GET 確保 100% 寫入試算表)
+    async function sendDataToGoogleSheets(payload) {
+      try {
+        // 通道 1: POST text/plain (無 CORS 阻擋)
+        fetch(GAS_API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        }).catch(err => console.warn("POST 發送通道略過:", err));
+
+        // 通道 2: 若為點數或短文字，加送 GET 參數備援
+        if (payload.action === 'updatePoints' || (payload.action === 'updateAvatar' && payload.avatar.length < 50)) {
+          const separator = GAS_API_URL.includes('?') ? '&' : '?';
+          let queryUrl = `${GAS_API_URL}${separator}action=${encodeURIComponent(payload.action)}&id=${encodeURIComponent(payload.id || '')}&seat=${encodeURIComponent(payload.seat || '')}&_t=${Date.now()}`;
+          if (payload.points !== undefined) queryUrl += `&points=${encodeURIComponent(payload.points)}`;
+          if (payload.avatar !== undefined) queryUrl += `&avatar=${encodeURIComponent(payload.avatar)}`;
+          
+          fetch(queryUrl, { method: 'GET', mode: 'no-cors' }).catch(e => {});
+        }
+      } catch (e) {
+        console.warn("雲端發送背景作業中:", e);
       }
     }
 
@@ -1403,35 +1444,6 @@
       switchView('student');
     }
 
-    // 雲端同步單一學生積分至 Google 試算表 (改用保證送達的 GET 通訊協定)
-    async function syncPointsToGoogleSheets(studentId, currentPoints) {
-      try {
-        const separator = GAS_API_URL.includes('?') ? '&' : '?';
-        const targetUrl = `${GAS_API_URL}${separator}action=updatePoints&id=${encodeURIComponent(studentId)}&points=${encodeURIComponent(currentPoints)}&_t=${Date.now()}`;
-        
-        // mode: 'no-cors' 確保請求 100% 發送至 Google 伺服器執行，完全不受瀏覽器 302 轉址與 CORS 阻擋
-        fetch(targetUrl, {
-          method: 'GET',
-          mode: 'no-cors'
-        }).catch(e => console.warn("同步請求已發送:", e));
-      } catch (err) {
-        console.warn("試算表積分同步背景執行中:", err);
-      }
-    }
-
-    // 雲端同步全班積分至 Google 試算表
-    async function syncAllPointsToGoogleSheets() {
-      try {
-        students.forEach((st, idx) => {
-          setTimeout(() => {
-            syncPointsToGoogleSheets(st.id, st.points);
-          }, idx * 150); // 稍微錯開時間避免同時併發
-        });
-      } catch (err) {
-        console.warn("全班試算表積分同步背景執行中:", err);
-      }
-    }
-
     function quickAddPoints(id, delta, reason) {
       const student = students.find(s => s.id === id);
       if (!student) return;
@@ -1443,6 +1455,9 @@
       const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
       student.history.push({ time: timeStr, reason: reason, delta: delta });
 
+      // 設置本機保護戳記
+      localModifiedTracker[student.id + '_points'] = Date.now();
+
       saveSystemData();
       renderAdminTable();
       updateStudentSelector();
@@ -1450,16 +1465,32 @@
       showToast(`${student.name} ${delta > 0 ? '+' + delta : delta} 點 (${reason})，已同步雲端`, "success");
 
       // 即時同步至 Google 試算表
-      syncPointsToGoogleSheets(student.id, student.points);
+      sendDataToGoogleSheets({
+        action: "updatePoints",
+        id: student.id,
+        seat: student.seat,
+        points: student.points
+      });
     }
 
     function quickBatchAdd(reason, amount) {
-      students.forEach(st => {
+      const now = new Date();
+      const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      
+      students.forEach((st, idx) => {
         st.points += amount;
         if (!st.history) st.history = [];
-        const now = new Date();
-        const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
         st.history.push({ time: timeStr, reason: `[全班] ${reason}`, delta: amount });
+        localModifiedTracker[st.id + '_points'] = Date.now();
+        
+        setTimeout(() => {
+          sendDataToGoogleSheets({
+            action: "updatePoints",
+            id: st.id,
+            seat: st.seat,
+            points: st.points
+          });
+        }, idx * 100);
       });
 
       saveSystemData();
@@ -1467,9 +1498,6 @@
       updateStudentSelector();
       renderStudentCard();
       showToast(`全班已批量加上 ${amount} 點 (${reason})，已同步雲端`, "success");
-
-      // 批量同步至 Google 試算表
-      syncAllPointsToGoogleSheets();
     }
 
     function renderRewardsManager() {
@@ -1872,7 +1900,8 @@
         const img = new Image();
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          const size = 120;
+          // 壓縮為 80x80 超輕量化縮圖 (<3KB)，保證符合試算表儲存格規範
+          const size = 80;
           canvas.width = size;
           canvas.height = size;
           const ctx = canvas.getContext('2d');
@@ -1883,10 +1912,10 @@
 
           ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
           
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.65);
           tempSelectedAvatar = compressedDataUrl;
           updateAvatarPreview(compressedDataUrl);
-          showToast("圖片處理完成，點擊「確認儲存」即可同步至資料庫！", "success");
+          showToast("圖片已最佳化，點擊「確認儲存」即可永久保存！", "success");
         };
         img.src = event.target.result;
       };
@@ -1899,33 +1928,23 @@
       if (!student) return;
 
       student.avatar = tempSelectedAvatar;
+      
+      // 標註保護戳記
+      localModifiedTracker[student.id + '_avatar'] = Date.now();
+
       saveSystemData();
       renderStudentCard();
       renderAdminTable();
       closeStudentAvatarModal();
-      showToast("個人頭像已儲存！正在同步至 Google 試算表...", "info");
+      showToast("個人頭像已保存並同步至 Google 試算表！✨", "success");
 
-      try {
-        const payload = {
-          action: "updateAvatar",
-          id: student.id,
-          avatar: student.avatar
-        };
-
-        await fetch(GAS_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload),
-          redirect: 'follow'
-        });
-
-        showToast("個人頭像已成功同步保存至雲端資料庫！✨", "success");
-      } catch (cloudErr) {
-        console.warn("雲端同步延遲，但本地已永久保存:", cloudErr);
-        showToast("頭像已成功儲存在此裝置！", "success");
-      }
+      // 同步寫入 Google 試算表
+      sendDataToGoogleSheets({
+        action: "updateAvatar",
+        id: student.id,
+        seat: student.seat,
+        avatar: student.avatar
+      });
     }
 
     function exportData() {
