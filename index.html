@@ -903,11 +903,14 @@
         if (incomingStudents && incomingStudents.length > 0) {
           students = incomingStudents.map((st, idx) => {
             const oldMatch = students.find(s => String(s.id).trim() === String(st.id || st.studentId || st['學號'] || '').trim());
+            const cloudAvatar = st.avatar || st['頭像'] || st['Avatar'] || '';
+            // 優先使用雲端頭像，若雲端為空則保留本地學生已自訂的頭像
+            const effectiveAvatar = (cloudAvatar && cloudAvatar.trim() !== '') ? cloudAvatar : (oldMatch?.avatar || "🌟");
             return {
               id: String(st.id || st.studentId || st['學號'] || `S${String(idx+1).padStart(3,'0')}`).trim(),
               seat: Number(st.seat || st.seatNumber || st['座號'] || idx + 1),
               name: String(st.name || st.studentName || st['姓名'] || `學生${idx+1}`),
-              avatar: st.avatar || st['頭像'] || oldMatch?.avatar || "🌟",
+              avatar: effectiveAvatar,
               points: Number(st.points || st.score || st['積分'] || st['點數'] || 0),
               history: st.history || oldMatch?.history || [
                 { time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), reason: "試算表資料同步", delta: Number(st.points || 0) }
@@ -957,28 +960,45 @@
     }
 
     function loadSystemData() {
-      const storedStudents = window.__studentDataStore;
-      if (storedStudents && Array.isArray(storedStudents) && storedStudents.length > 0) {
-        students = storedStudents;
-      } else {
+      try {
+        const storedStudentsStr = localStorage.getItem('class_points_students');
+        if (storedStudentsStr) {
+          students = JSON.parse(storedStudentsStr);
+        } else {
+          students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
+          localStorage.setItem('class_points_students', JSON.stringify(students));
+        }
+
+        const storedRewardsStr = localStorage.getItem('class_points_rewards');
+        if (storedRewardsStr) {
+          rewards = JSON.parse(storedRewardsStr);
+        } else {
+          rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
+          localStorage.setItem('class_points_rewards', JSON.stringify(rewards));
+        }
+
+        const storedPwd = localStorage.getItem('class_points_admin_pwd');
+        if (storedPwd) {
+          adminPassword = storedPwd;
+        } else {
+          adminPassword = DEFAULT_ADMIN_PASSWORD;
+          localStorage.setItem('class_points_admin_pwd', adminPassword);
+        }
+      } catch (e) {
+        console.warn("LocalStorage access fallback:", e);
         students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
-        window.__studentDataStore = students;
-      }
-
-      const storedRewards = window.__rewardsStore;
-      if (storedRewards && Array.isArray(storedRewards) && storedRewards.length > 0) {
-        rewards = storedRewards;
-      } else {
         rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
-        window.__rewardsStore = rewards;
-      }
-
-      const storedPwd = window.__adminPwdStore;
-      if (storedPwd) {
-        adminPassword = storedPwd;
-      } else {
         adminPassword = DEFAULT_ADMIN_PASSWORD;
-        window.__adminPwdStore = adminPassword;
+      }
+    }
+
+    function saveSystemData() {
+      try {
+        localStorage.setItem('class_points_students', JSON.stringify(students));
+        localStorage.setItem('class_points_rewards', JSON.stringify(rewards));
+        localStorage.setItem('class_points_admin_pwd', adminPassword);
+      } catch (e) {
+        console.warn("LocalStorage save error:", e);
       }
     }
 
@@ -1841,13 +1861,14 @@
       if (!student) return;
 
       student.avatar = tempSelectedAvatar;
+      // 1. 先立即永久保存在手機/瀏覽器的 LocalStorage
       saveSystemData();
       renderStudentCard();
       renderAdminTable();
       closeStudentAvatarModal();
-      showToast("個人頭像已在本地更新，正在同步至雲端資料庫...", "info");
+      showToast("個人頭像已在本地儲存！正在同步至雲端...", "info");
 
-      // 透過 API 自動將頭像同步寫入 Google 試算表資料庫
+      // 2. 透過避免觸發 CORS OPTIONS 預檢的方式傳送至 Google 試算表
       try {
         const payload = {
           action: "updateAvatar",
@@ -1855,19 +1876,20 @@
           avatar: student.avatar
         };
 
-        const res = await fetch(GAS_API_URL, {
+        // 使用 text/plain 可以避開瀏覽器的 CORS 預檢攔截 (OPTIONS 405 error)
+        await fetch(GAS_API_URL, {
           method: 'POST',
-          mode: 'no-cors', // 避免跨域阻擋，保證寫入
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'text/plain;charset=utf-8'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(payload),
+          redirect: 'follow'
         });
 
-        showToast("個人頭像已成功儲存至雲端資料庫！✨", "success");
+        showToast("個人頭像已成功同步保存至雲端資料庫！✨", "success");
       } catch (cloudErr) {
-        console.warn("頭像雲端同步延遲，已保留於本機:", cloudErr);
-        showToast("頭像已儲存於本機！", "success");
+        console.warn("雲端同步有延遲，但本地已永久保存:", cloudErr);
+        showToast("頭像已成功儲存在此裝置！", "success");
       }
     }
 
