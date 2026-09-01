@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>向日葵班班級學習積分與 QR Code 查詢系統</title>
+  <title>向日葵班級學習積分與 QR Code 查詢系統</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome 圖示 -->
@@ -132,9 +132,18 @@
           <div class="absolute top-4 right-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold tracking-wider">
             <span id="cardSeatNumber">座號 01 號</span>
           </div>
-          <div class="w-24 h-24 mx-auto bg-white/90 backdrop-blur rounded-full p-1 shadow-inner flex items-center justify-center text-4xl mb-3">
-            <span id="cardAvatar">🌟</span>
+          
+          <!-- 可點擊更換的頭像容器 -->
+          <div class="relative w-24 h-24 mx-auto mb-3 group cursor-pointer" onclick="openStudentAvatarModal()" title="點擊更換我的個人頭像或上傳照片">
+            <div class="w-full h-full bg-white/90 backdrop-blur rounded-full p-1 shadow-inner flex items-center justify-center text-4xl overflow-hidden border-2 border-white/60 group-hover:ring-4 group-hover:ring-white/40 transition">
+              <span id="cardAvatar">🌟</span>
+            </div>
+            <!-- 學生更換頭貼按鈕標籤 -->
+            <div class="absolute bottom-0 right-0 bg-indigo-600 hover:bg-indigo-700 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs shadow-md border-2 border-white transition transform group-hover:scale-110">
+              <i class="fa-solid fa-camera"></i>
+            </div>
           </div>
+
           <h2 id="cardStudentName" class="text-2xl font-black tracking-tight">載入中...</h2>
           <p id="cardStudentId" class="text-xs text-indigo-100 mt-1 font-mono">專屬代碼: S001</p>
         </div>
@@ -569,39 +578,74 @@
         <p class="text-xs text-slate-500 mt-0.5">為學生扣除對應點數並完成兌換紀錄</p>
       </div>
 
-      <div class="bg-slate-50 p-3 rounded-2xl mb-4 text-xs space-y-1">
-        <div class="flex justify-between text-slate-600">
-          <span>兌換學生：</span>
-          <strong id="claimStudentName" class="text-slate-800">--</strong>
+  <!-- ================= 模態視窗: 學生自訂大頭貼/照片 (Student Avatar Modal) ================= -->
+  <div id="avatarModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-face-smile text-indigo-600"></i> 更換我的個人頭像
+        </h3>
+        <button onclick="closeStudentAvatarModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- 目前預覽 -->
+      <div class="text-center mb-5">
+        <div class="w-20 h-20 mx-auto rounded-full bg-slate-100 border-2 border-indigo-200 flex items-center justify-center text-4xl overflow-hidden shadow-inner mb-2" id="avatarPreviewBox">
+          <span id="avatarPreviewSpan">🌟</span>
         </div>
-        <div class="flex justify-between text-slate-600">
-          <span>目前點數：</span>
-          <strong id="claimCurrentPoints" class="text-indigo-600">0 點</strong>
+        <p class="text-xs text-slate-500 font-medium">即將套用的個人頭像預覽</p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- 方式 1: 上傳本機照片 / 拍照 -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-center">
+          <p class="text-xs font-bold text-slate-700 mb-2 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-image text-indigo-500"></i> 上傳個人照片或自拍
+          </p>
+          <input type="file" id="avatarUploadInput" accept="image/*" class="hidden" onchange="handleAvatarFileUpload(event)">
+          <button type="button" onclick="document.getElementById('avatarUploadInput').click()" class="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-indigo-200">
+            <i class="fa-solid fa-upload"></i> 從相簿選取或拍照上傳
+          </button>
+        </div>
+
+        <!-- 方式 2: 點選熱門 Emoji -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1.5">或挑選一個代表自己的 Emoji：</label>
+          <div class="grid grid-cols-6 gap-2 p-2 bg-slate-50 rounded-2xl border border-slate-200 text-2xl text-center">
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🌟')">🌟</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🚀')">🚀</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🦄')">🦄</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🦁')">🦁</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🦊')">🦊</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🐼')">🐼</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🤖')">🤖</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🎨')">🎨</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('⚽')">⚽</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🎮')">🎮</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('🍀')">🍀</span>
+            <span class="cursor-pointer hover:scale-125 transition p-1 hover:bg-white rounded-xl" onclick="setAvatarPreset('👑')">👑</span>
+          </div>
+        </div>
+
+        <!-- 方式 3: 手動輸入符號 -->
+        <div class="flex items-center gap-2">
+          <input type="text" id="avatarManualInput" placeholder="或自行輸入 Emoji 符號" maxlength="2" class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-center focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <button type="button" onclick="applyManualAvatarInput()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+            套用
+          </button>
         </div>
       </div>
 
-      <form id="claimForm" onsubmit="submitClaimReward(event)" class="space-y-4">
-        <input type="hidden" id="claimStudentId">
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">選擇要兌換的獎勵項目 *</label>
-          <select id="claimRewardSelect" required onchange="onClaimRewardSelected(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <!-- 動態填入 -->
-          </select>
-        </div>
-
-        <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800">
-          即將扣除：<span id="claimDeductAmount" class="font-black text-rose-600 text-sm">0</span> 點
-        </div>
-
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
-          <button type="button" onclick="closeClaimModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-semibold transition">
-            取消
-          </button>
-          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition shadow-sm">
-            確認核銷扣點
-          </button>
-        </div>
-      </form>
+      <div class="flex justify-end gap-2 pt-4 mt-4 border-t border-slate-100">
+        <button type="button" onclick="closeStudentAvatarModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition">
+          取消
+        </button>
+        <button type="button" onclick="saveSelectedAvatar()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition shadow-sm">
+          確認儲存頭像
+        </button>
+      </div>
     </div>
   </div>
 
@@ -725,6 +769,7 @@
     let pendingAdminTargetView = 'admin';
     let isFetchingGoogleSheet = false;
     let isStudentPersonalMode = false; // 是否為學生專屬掃碼模式
+    let tempSelectedAvatar = '🌟'; // 暫存正在挑選的頭貼
 
     window.onload = function() {
       loadSystemData();
@@ -1105,7 +1150,16 @@
       if (!student) return;
 
       document.getElementById('cardSeatNumber').textContent = `座號 ${String(student.seat).padStart(2, '0')} 號`;
-      document.getElementById('cardAvatar').textContent = student.avatar || '🌟';
+      
+      // 支援 Emoji 與 圖片 URL/Base64 大頭貼
+      const cardAvatarEl = document.getElementById('cardAvatar');
+      const avatarVal = student.avatar || '🌟';
+      if (avatarVal.startsWith('data:image/') || avatarVal.startsWith('http://') || avatarVal.startsWith('https://')) {
+        cardAvatarEl.innerHTML = `<img src="${avatarVal}" alt="頭貼" class="w-full h-full object-cover rounded-full">`;
+      } else {
+        cardAvatarEl.innerHTML = avatarVal;
+      }
+
       document.getElementById('cardStudentName').textContent = student.name;
       document.getElementById('cardStudentId').textContent = `專屬代碼: ${student.id}`;
       document.getElementById('cardPoints').textContent = student.points;
@@ -1226,6 +1280,13 @@
         const level = getStudentLevel(st.points);
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50/80 transition";
+        
+        // 處理表格頭像 (Emoji 或 圖片)
+        let avatarDisplay = `<span class="text-lg">${st.avatar || '🌟'}</span>`;
+        if (st.avatar && (st.avatar.startsWith('data:image/') || st.avatar.startsWith('http'))) {
+          avatarDisplay = `<img src="${st.avatar}" class="w-7 h-7 rounded-full object-cover border border-slate-200">`;
+        }
+
         tr.innerHTML = `
           <td class="py-3 px-4">
             <span class="inline-block bg-slate-100 font-mono font-bold text-slate-700 px-2 py-0.5 rounded-md text-xs mr-1.5">
@@ -1235,7 +1296,7 @@
           </td>
           <td class="py-3 px-4">
             <div class="flex items-center space-x-2">
-              <span class="text-lg">${st.avatar || '🌟'}</span>
+              ${avatarDisplay}
               <span class="font-bold text-slate-800">${st.name}</span>
             </div>
           </td>
@@ -1503,13 +1564,19 @@
         card.className = "bg-white p-4 rounded-2xl border-2 border-dashed border-indigo-200 shadow-sm flex flex-col items-center text-center page-break relative";
         
         const qrContainerId = `qrcode_${st.id}`;
+        
+        let cardAvatarDisplay = `<div class="text-2xl mb-1">${st.avatar || '🌟'}</div>`;
+        if (st.avatar && (st.avatar.startsWith('data:image/') || st.avatar.startsWith('http'))) {
+          cardAvatarDisplay = `<div class="w-10 h-10 mx-auto mb-1 rounded-full overflow-hidden border border-indigo-200"><img src="${st.avatar}" class="w-full h-full object-cover"></div>`;
+        }
+
         card.innerHTML = `
           <div class="w-full flex justify-between items-center text-xs font-bold text-slate-500 mb-2">
             <span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md">座號 ${String(st.seat).padStart(2,'0')}</span>
             <span class="text-slate-400 font-mono">${st.id}</span>
           </div>
 
-          <div class="text-2xl mb-1">${st.avatar || '🌟'}</div>
+          ${cardAvatarDisplay}
           <h4 class="font-black text-slate-800 text-lg mb-2">${st.name}</h4>
           
           <div id="${qrContainerId}" class="p-2 bg-white border border-slate-200 rounded-xl shadow-inner flex items-center justify-center mb-3"></div>
@@ -1618,94 +1685,94 @@
       if (!student) return;
 
       if (confirm(`確定要刪除學生「${student.name}」嗎？所有紀錄將清除。`)) {
-        students = students.filter(s => s.id !== id);
-        if (currentStudentId === id && students.length > 0) {
-          currentStudentId = students[0].id;
-        }
-        saveSystemData();
-        refreshAllViews();
-        showToast("學生已成功刪除", "info");
-      }
-    }
-
-    function openPointModal(id) {
-      const student = students.find(s => s.id === id);
+    // ================= 學生自訂頭像相關邏輯 =================
+    function openStudentAvatarModal() {
+      const student = students.find(s => s.id === currentStudentId) || students[0];
       if (!student) return;
-
-      document.getElementById('pointStudentId').value = student.id;
-      document.getElementById('pointModalStudentName').textContent = `${student.name} (#${student.seat})`;
-      document.getElementById('pointModalCurrentPoints').textContent = student.points;
-      document.getElementById('pointChangeAmount').value = "";
-      document.getElementById('pointReason').value = "";
-      document.getElementById('pointModal').classList.remove('hidden');
+      
+      tempSelectedAvatar = student.avatar || '🌟';
+      updateAvatarPreview(tempSelectedAvatar);
+      document.getElementById('avatarManualInput').value = '';
+      document.getElementById('avatarModal').classList.remove('hidden');
     }
 
-    function closePointModal() {
-      document.getElementById('pointModal').classList.add('hidden');
+    function closeStudentAvatarModal() {
+      document.getElementById('avatarModal').classList.add('hidden');
     }
 
-    function setQuickReason(reason, amount) {
-      document.getElementById('pointReason').value = reason;
-      document.getElementById('pointChangeAmount').value = amount;
-    }
+    function updateAvatarPreview(val) {
+      const previewSpan = document.getElementById('avatarPreviewSpan');
+      if (!previewSpan) return;
 
-    function submitPointAdjustment(e) {
-      e.preventDefault();
-      const id = document.getElementById('pointStudentId').value;
-      const amount = parseInt(document.getElementById('pointChangeAmount').value, 10);
-      const reason = document.getElementById('pointReason').value.trim();
-
-      if (isNaN(amount) || !reason) {
-        showToast("請填寫有效的變更點數與原因", "error");
-        return;
+      if (val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://')) {
+        previewSpan.innerHTML = `<img src="${val}" alt="預覽" class="w-full h-full object-cover">`;
+      } else {
+        previewSpan.innerHTML = val;
       }
-
-      quickAddPoints(id, amount, reason);
-      closePointModal();
     }
 
-    function exportData() {
-      const exportObject = {
-        students: students,
-        rewards: rewards,
-        adminPassword: adminPassword,
-        exportDate: new Date().toISOString()
-      };
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `class_points_backup_${new Date().toISOString().slice(0,10)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast("班級積分與獎勵資料已成功匯出備份！", "success");
+    function setAvatarPreset(emoji) {
+      tempSelectedAvatar = emoji;
+      updateAvatarPreview(emoji);
     }
 
-    function importData(e) {
+    function applyManualAvatarInput() {
+      const val = document.getElementById('avatarManualInput').value.trim();
+      if (val) {
+        tempSelectedAvatar = val;
+        updateAvatarPreview(val);
+      }
+    }
+
+    // 處理學生拍照或圖片上傳 (自動壓縮並裁切)
+    function handleAvatarFileUpload(e) {
       const file = e.target.files[0];
       if (!file) return;
 
+      if (!file.type.startsWith('image/')) {
+        showToast("請選擇圖片檔案！", "error");
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const parsed = JSON.parse(evt.target.result);
-          if (parsed.students && Array.isArray(parsed.students)) {
-            students = parsed.students;
-            if (parsed.rewards && Array.isArray(parsed.rewards)) rewards = parsed.rewards;
-            if (parsed.adminPassword) adminPassword = parsed.adminPassword;
-          } else if (Array.isArray(parsed)) {
-            students = parsed;
-          }
-          currentStudentId = students[0]?.id || null;
-          saveSystemData();
-          refreshAllViews();
-          showToast("成功匯入學生積分與獎勵資料！", "success");
-        } catch (err) {
-          showToast("檔案讀取失敗，非有效 JSON 檔案", "error");
-        }
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          // 使用 Canvas 壓縮圖片至 160x160 以免佔用大量記憶體
+          const canvas = document.createElement('canvas');
+          const size = 160;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          // 正方形居中裁切
+          const minDim = Math.min(img.width, img.height);
+          const startX = (img.width - minDim) / 2;
+          const startY = (img.height - minDim) / 2;
+
+          ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
+          
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          tempSelectedAvatar = compressedDataUrl;
+          updateAvatarPreview(compressedDataUrl);
+          showToast("圖片上傳成功，點擊「確認儲存」即可生效！", "success");
+        };
+        img.src = event.target.result;
       };
-      reader.readAsText(file);
+      reader.readAsDataURL(file);
       e.target.value = '';
+    }
+
+    function saveSelectedAvatar() {
+      const student = students.find(s => s.id === currentStudentId);
+      if (!student) return;
+
+      student.avatar = tempSelectedAvatar;
+      saveSystemData();
+      renderStudentCard();
+      renderAdminTable();
+      closeStudentAvatarModal();
+      showToast("個人頭像已成功更新！✨", "success");
     }
 
     function showToast(msg, type = "success") {
