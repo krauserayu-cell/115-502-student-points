@@ -58,12 +58,21 @@
         </div>
         <div>
           <h1 class="text-lg font-bold tracking-wide">學習存摺積分系統</h1>
-          <p class="text-xs text-indigo-200">學生掃碼專屬查詢 · 獎勵兌換管理</p>
+          <div class="flex items-center gap-2">
+            <p class="text-xs text-indigo-200">學生掃碼專屬查詢 · 獎勵兌換管理</p>
+            <!-- 雲端試算表連線狀態燈 -->
+            <span id="syncStatusBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/60 text-indigo-100">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Google 試算表連線中
+            </span>
+          </div>
         </div>
       </div>
 
-      <!-- 導航切換按鈕 -->
+      <!-- 導航切換按鈕與即時同步按鈕 -->
       <div class="flex items-center space-x-2 text-sm bg-indigo-700/50 p-1 rounded-xl">
+        <button id="syncNowBtn" onclick="fetchFromGoogleSheets(true)" class="px-2.5 py-1.5 rounded-lg font-medium text-indigo-200 hover:text-white hover:bg-indigo-600/60 transition flex items-center gap-1 text-xs" title="手動向 Google 試算表拉取最新資料">
+          <i class="fa-solid fa-arrows-rotate" id="syncSpinner"></i> 同步
+        </button>
         <button id="navStudentBtn" onclick="switchView('student')" class="px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-sm">
           <i class="fa-solid fa-mobile-screen"></i> 學生查詢卡
         </button>
@@ -194,9 +203,12 @@
               <i class="fa-solid fa-shield-halved"></i> 密碼保護中
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-0.5">管理學生名單、給予積分、自訂獎勵項目與修改後台密碼</p>
+          <p class="text-xs text-slate-500 mt-0.5">已串接 Google 試算表 Web API，可在試算表打分數後一鍵同步更新</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
+          <button onclick="fetchFromGoogleSheets(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 border border-indigo-200">
+            <i class="fa-solid fa-cloud-arrow-down"></i> 同步 Google 試算表
+          </button>
           <button onclick="openChangePasswordModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5">
             <i class="fa-solid fa-key"></i> 修改密碼
           </button>
@@ -590,42 +602,13 @@
 
   <!-- ================= 系統邏輯 Javascript ================= -->
   <script>
-// 替換為步驟 3 取得的 Google Apps Script 網址
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbynVsidr5Hs7xlSwHUuWuC7C0xa2xPkVsvboW_jImOzBW3S_ejZ7IBNYiOQHWRQTn68ZQ/exec";
-
-// 從 Google 試算表同步資料的函式
-async function fetchFromGoogleSheets() {
-  try {
-    showToast("正在從 Google 試算表同步資料...", "info");
-    const response = await fetch(GAS_API_URL);
-    const data = await response.json();
-
-    if (data.status === "success") {
-      // 將試算表的最新學生與獎勵清單套入系統
-      students = data.students;
-      if (data.rewards && data.rewards.length > 0) {
-        rewards = data.rewards;
-      }
-      refreshAllViews();
-      showToast("已成功同步 Google 試算表最新積分！", "success");
-    }
-  } catch (error) {
-    console.error("同步失敗:", error);
-    showToast("無法連接 Google 試算表，顯示離線暫存資料", "error");
-  }
-}
-
-// 網頁開啟時自動執行同步
-window.onload = function() {
-  loadSystemData(); // 先載入本機預設或暫存
-  fetchFromGoogleSheets(); // 自動向 Google 試算表拉取最新分數！
-};
-
+    // Google Apps Script Web App API 網址
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbynVsidr5Hs7xlSwHUuWuC7C0xa2xPkVsvboW_jImOzBW3S_ejZ7IBNYiOQHWRQTn68ZQ/exec";
 
     // 預設教師密碼
     const DEFAULT_ADMIN_PASSWORD = "8888";
 
-    // 預設範例學生名單
+    // 預設範例學生名單（離線備援與初次載入用）
     const DEFAULT_STUDENTS = [
       {
         id: "S001",
@@ -724,6 +707,7 @@ window.onload = function() {
     let isAdminAuthenticated = false;
     let currentStudentId = null;
     let pendingAdminTargetView = 'admin';
+    let isFetchingGoogleSheet = false;
 
     window.onload = function() {
       loadSystemData();
@@ -742,7 +726,112 @@ window.onload = function() {
       }
 
       refreshAllViews();
+
+      // 開啟網頁時自動向 Google 試算表 Web API 同步最新資料
+      fetchFromGoogleSheets(false);
     };
+
+    async function fetchFromGoogleSheets(showUserFeedback = false) {
+      if (isFetchingGoogleSheet) return;
+      isFetchingGoogleSheet = true;
+
+      const spinner = document.getElementById('syncSpinner');
+      const statusBadge = document.getElementById('syncStatusBadge');
+      if (spinner) spinner.classList.add('animate-spin');
+      if (statusBadge) {
+        statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/70 text-white";
+        statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span> 正在同步試算表...`;
+      }
+
+      if (showUserFeedback) {
+        showToast("正在連線 Google 試算表讀取最新積分...", "info");
+      }
+
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: 'GET',
+          redirect: 'follow',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP 錯誤碼: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // 彈性解析 API 回傳格式 (支援 { status: 'success', students: [...], rewards: [...] } 或直接陣列)
+        let incomingStudents = null;
+        let incomingRewards = null;
+
+        if (Array.isArray(data)) {
+          incomingStudents = data;
+        } else if (data && typeof data === 'object') {
+          if (Array.isArray(data.students)) incomingStudents = data.students;
+          if (Array.isArray(data.rewards)) incomingRewards = data.rewards;
+          if (data.adminPassword) adminPassword = String(data.adminPassword);
+        }
+
+        if (incomingStudents && incomingStudents.length > 0) {
+          // 格式化與標準化學生資料
+          students = incomingStudents.map((st, idx) => {
+            // 尋找舊有的歷史紀錄與頭像
+            const oldMatch = students.find(s => String(s.id).trim() === String(st.id || st.studentId || st['學號'] || '').trim());
+            return {
+              id: String(st.id || st.studentId || st['學號'] || `S${String(idx+1).padStart(3,'0')}`).trim(),
+              seat: Number(st.seat || st.seatNumber || st['座號'] || idx + 1),
+              name: String(st.name || st.studentName || st['姓名'] || `學生${idx+1}`),
+              avatar: st.avatar || st['頭像'] || oldMatch?.avatar || "🌟",
+              points: Number(st.points || st.score || st['積分'] || st['點數'] || 0),
+              history: st.history || oldMatch?.history || [
+                { time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }), reason: "試算表資料同步", delta: Number(st.points || 0) }
+              ]
+            };
+          });
+
+          // 如果目前選取的學生不在清單內，預設選取第一位
+          if (!students.some(s => s.id === currentStudentId)) {
+            currentStudentId = students[0].id;
+          }
+        }
+
+        if (incomingRewards && incomingRewards.length > 0) {
+          rewards = incomingRewards.map((rw, idx) => ({
+            id: String(rw.id || `R${String(idx+1).padStart(2,'0')}`),
+            emoji: rw.emoji || "🎁",
+            title: String(rw.title || rw['獎勵名稱'] || rw.name || "獎勵"),
+            points: Number(rw.points || rw['所需點數'] || rw.cost || 10),
+            desc: String(rw.desc || rw['說明'] || rw.description || '')
+          }));
+        }
+
+        saveSystemData();
+        refreshAllViews();
+
+        if (statusBadge) {
+          statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/80 text-white";
+          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-white"></span> Google 試算表已同步`;
+        }
+
+        if (showUserFeedback) {
+          showToast("已成功同步 Google 試算表最新積分與獎勵！", "success");
+        }
+      } catch (err) {
+        console.warn("Google Apps Script 同步未完成或使用本機資料庫:", err);
+        if (statusBadge) {
+          statusBadge.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/60 text-indigo-100";
+          statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-indigo-300"></span> 本地離線暫存模式`;
+        }
+        if (showUserFeedback) {
+          showToast("無法連線至 Google 試算表 API，目前顯示本機暫存資料", "info");
+        }
+      } finally {
+        isFetchingGoogleSheet = false;
+        if (spinner) spinner.classList.remove('animate-spin');
+      }
+    }
 
     function loadSystemData() {
       // 載入學生名單
