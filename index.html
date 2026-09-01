@@ -252,7 +252,7 @@
               <i class="fa-solid fa-shield-halved"></i> 密碼保護中
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-0.5">自訂學生歡迎詞、積分扣減與個人資料皆會同步保存</p>
+          <p class="text-xs text-slate-500 mt-0.5">自訂學生歡迎詞、積分扣減與個人資料皆會同步儲存至 Google 試算表</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button onclick="fetchFromGoogleSheets(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl text-sm font-semibold transition flex items-center gap-1.5 border border-indigo-200 shadow-sm">
@@ -880,7 +880,7 @@
     let students = [];
     let rewards = [];
     let adminPassword = DEFAULT_ADMIN_PASSWORD;
-    let hasCustomPassword = false; // 是否已自訂密碼
+    let hasCustomPassword = false;
     let isAdminAuthenticated = false;
     let currentStudentId = null;
     let pendingAdminTargetView = 'admin';
@@ -940,7 +940,7 @@
       if (studentRefreshBtn) studentRefreshBtn.classList.remove('hidden');
     }
 
-    // 連線 Google 試算表取得最新資料 (保護本機自訂密碼與歡迎詞)
+    // 連線 Google 試算表取得最新資料
     async function fetchFromGoogleSheets(showUserFeedback = false) {
       if (isFetchingGoogleSheet) return;
       isFetchingGoogleSheet = true;
@@ -988,7 +988,6 @@
           else if (Array.isArray(data.data)) incomingStudents = data.data;
           
           if (Array.isArray(data.rewards)) incomingRewards = data.rewards;
-          // 只有在尚未自訂本機密碼時才採納雲端密碼
           if (data.adminPassword && !hasCustomPassword) {
             adminPassword = String(data.adminPassword);
           }
@@ -1002,7 +1001,7 @@
             const oldMatch = students.find(s => String(s.id).trim().toLowerCase() === rawId.toLowerCase());
             const cloudAvatar = String(st.avatar || st['頭像'] || st.Avatar || '').trim();
             const cloudPoints = Number(st.points || st.score || st['積分'] || st['點數'] || st.Points || 0);
-            const cloudWelcome = st.welcomeMessage || st['歡迎詞'] || st['鼓勵話語'] || '';
+            const cloudWelcome = st.welcomeMessage || st['歡迎詞'] || st['鼓勵話語'] || st['勉勵詞'] || st['留言'] || st.welcome || '';
 
             const lastLocalPointEdit = localModifiedTracker[rawId + '_points'] || 0;
             const lastLocalAvatarEdit = localModifiedTracker[rawId + '_avatar'] || 0;
@@ -1099,7 +1098,6 @@
           rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
         }
 
-        // 讀取自訂教師密碼
         const savedCustomPwd = localStorage.getItem('class_points_custom_pwd');
         if (savedCustomPwd && savedCustomPwd.trim() !== '') {
           adminPassword = savedCustomPwd;
@@ -1131,9 +1129,10 @@
       }
     }
 
-    // 核心資料雲端發送器
+    // 核心資料雲端發送器 (支援點數、頭像、歡迎勉勵詞雙軌送達)
     async function sendDataToGoogleSheets(payload) {
       try {
+        // 通道 1: POST text/plain
         fetch(GAS_API_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -1143,11 +1142,13 @@
           body: JSON.stringify(payload)
         }).catch(err => console.warn("POST 發送略過:", err));
 
-        if (payload.action === 'updatePoints' || (payload.action === 'updateAvatar' && payload.avatar && payload.avatar.length < 50)) {
+        // 通道 2: GET 備援
+        if (payload.action === 'updatePoints' || payload.action === 'updateWelcomeMessage' || (payload.action === 'updateAvatar' && payload.avatar && payload.avatar.length < 50)) {
           const separator = GAS_API_URL.includes('?') ? '&' : '?';
           let queryUrl = `${GAS_API_URL}${separator}action=${encodeURIComponent(payload.action)}&id=${encodeURIComponent(payload.id || '')}&seat=${encodeURIComponent(payload.seat || '')}&_t=${Date.now()}`;
           if (payload.points !== undefined) queryUrl += `&points=${encodeURIComponent(payload.points)}`;
           if (payload.avatar !== undefined) queryUrl += `&avatar=${encodeURIComponent(payload.avatar)}`;
+          if (payload.welcomeMessage !== undefined) queryUrl += `&welcomeMessage=${encodeURIComponent(payload.welcomeMessage)}`;
           
           fetch(queryUrl, { method: 'GET', mode: 'no-cors' }).catch(e => {});
         }
@@ -1645,7 +1646,7 @@
       renderAdminTable();
       if (currentStudentId === student.id) renderStudentCard();
       closeWelcomeMessageModal();
-      showToast(`已成功更新 ${student.name} 的專屬鼓勵話語！`, "success");
+      showToast(`已成功更新 ${student.name} 的專屬鼓勵話語並同步至試算表！✨`, "success");
 
       // 同步到 Google 試算表
       sendDataToGoogleSheets({
