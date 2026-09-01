@@ -76,7 +76,7 @@
           <div class="flex items-center gap-2">
             <p class="text-xs text-amber-100 font-medium">學生個人專屬查詢 · 獎勵兌換</p>
             <!-- 雲端試算表連線狀態燈 -->
-            <span id="syncStatusBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/20 text-white transition backdrop-blur-sm">
+            <span id="syncStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white/20 text-white transition backdrop-blur-sm">
               <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span> 連線中...
             </span>
           </div>
@@ -319,7 +319,7 @@
               <i class="fa-solid fa-shield-halved"></i> 密碼保護中
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-1">向日葵班班專屬管理後台 · 歡迎詞與點數皆會自動同步 Google 試算表</p>
+          <p class="text-xs text-slate-500 mt-1">向日葵班班專屬管理後台 · 歡迎詞、積分與行事曆皆會同步 Google 試算表</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button onclick="fetchFromGoogleSheets(true)" class="bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 border border-amber-200 shadow-xs">
@@ -450,6 +450,74 @@
         </div>
       </div>
     </section>
+
+    <!-- ================= 視圖 3: QR Code 批量列印 (Print / QR Codes View) ================= -->
+    <section id="printView" class="hidden">
+      <div class="no-print bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <h3 class="font-bold text-amber-900 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-print"></i> 🌻 向日葵班班 · 專屬 QR Code 小卡
+          </h3>
+          <p class="text-xs text-amber-700 mt-0.5">點擊右方按鈕即可一鍵呼叫瀏覽器列印，將小卡剪裁後貼在學生聯絡簿或課桌上。</p>
+        </div>
+        <button onclick="window.print()" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition flex items-center gap-2">
+          <i class="fa-solid fa-print"></i> 立即列印全部小卡
+        </button>
+      </div>
+
+      <div id="qrCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <!-- 動態產生 QR Code 卡片 -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= 模態視窗: 編輯學生歡迎詞 (Welcome Message Modal) ================= -->
+  <div id="welcomeMessageModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-comment-dots text-amber-500"></i> 設定向日葵班專屬勉勵詞
+        </h3>
+        <button onclick="closeWelcomeMessageModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-500 mb-3">
+        對象：<span id="welcomeModalStudentName" class="font-bold text-orange-600 text-sm">--</span>
+      </div>
+
+      <form id="welcomeMessageForm" onsubmit="saveWelcomeMessage(event)" class="space-y-3.5">
+        <input type="hidden" id="welcomeModalStudentId">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">歡迎與勉勵詞內容 *</label>
+          <textarea id="welcomeModalInput" rows="3" required placeholder="例如：這週在分組活動表現很棒，繼續保持積極的心情喔！" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-semibold text-slate-500 mb-1.5">快速套用範本：</label>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="setQuickWelcome('🌻 歡迎來到向日葵班班！今天也要一起快樂學習、發揮最好的實力喔！')" class="text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg border border-amber-200">班級歡迎</button>
+            <button type="button" onclick="setQuickWelcome('🏆 這週作業與課堂表現非常亮眼，老師為你感到驕傲！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">表現優秀</button>
+            <button type="button" onclick="setQuickWelcome('💪 遇到挑戰不要灰心，多向同學與老師提問，你一定做得到！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">加油打氣</button>
+            <button type="button" onclick="setQuickWelcome('📚 距離下一個稱號只差一點點了，今天再爭取加分吧！')" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg">集點衝刺</button>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+          <button type="button" onclick="closeWelcomeMessageModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition">
+            取消
+          </button>
+          <button type="submit" class="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-bold transition shadow-sm">
+            儲存勉勵詞
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= 模態視窗: 新增/編輯行事曆事件 (Event Modal) ================= -->
   <div id="eventModal" class="no-print fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
@@ -948,7 +1016,7 @@
         welcomeMessage: "👑 自主閱讀達標，是向日葵班的榜樣，繼續保持熱情！",
         history: [
           { time: "08/28 16:00", reason: "暑假自主閱讀達標", delta: 15 },
-          { time: "08/30 13:30", reason: "擔任值日生打鎖認真", delta: 3 }
+          { time: "08/30 13:30", reason: "擔任值日生打掃認真", delta: 3 }
         ]
       },
       {
@@ -1306,18 +1374,22 @@
         switchView(targetView);
       } else {
         pendingAdminTargetView = targetView;
-        document.getElementById('inputAdminPassword').value = '';
-        document.getElementById('adminLoginModal').classList.remove('hidden');
+        const pwdInput = document.getElementById('inputAdminPassword');
+        if (pwdInput) pwdInput.value = '';
+        const modal = document.getElementById('adminLoginModal');
+        if (modal) modal.classList.remove('hidden');
       }
     }
 
     function closeAdminLoginModal() {
-      document.getElementById('adminLoginModal').classList.add('hidden');
+      const modal = document.getElementById('adminLoginModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function verifyAdminPassword(e) {
       e.preventDefault();
-      const entered = document.getElementById('inputAdminPassword').value.trim();
+      const pwdInput = document.getElementById('inputAdminPassword');
+      const entered = pwdInput ? pwdInput.value.trim() : '';
       if (entered === adminPassword) {
         isAdminAuthenticated = true;
         closeAdminLoginModal();
@@ -1332,7 +1404,7 @@
         showToast("身分驗證成功，已進入向日葵班班控制台！", "success");
       } else {
         showToast("密碼錯誤，請重新輸入！", "error");
-        document.getElementById('inputAdminPassword').select();
+        if (pwdInput) pwdInput.select();
       }
     }
 
@@ -1361,14 +1433,19 @@
     }
 
     function openChangePasswordModal() {
-      document.getElementById('currentPasswordInput').value = '';
-      document.getElementById('newPasswordInput').value = '';
-      document.getElementById('confirmNewPasswordInput').value = '';
-      document.getElementById('changePasswordModal').classList.remove('hidden');
+      const curr = document.getElementById('currentPasswordInput');
+      const next = document.getElementById('newPasswordInput');
+      const confirm = document.getElementById('confirmNewPasswordInput');
+      if (curr) curr.value = '';
+      if (next) next.value = '';
+      if (confirm) confirm.value = '';
+      const modal = document.getElementById('changePasswordModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeChangePasswordModal() {
-      document.getElementById('changePasswordModal').classList.add('hidden');
+      const modal = document.getElementById('changePasswordModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function saveNewPassword(e) {
@@ -1399,22 +1476,24 @@
     }
 
     function switchView(viewName) {
-      document.getElementById('studentView').classList.add('hidden');
-      document.getElementById('adminView').classList.add('hidden');
-      document.getElementById('printView').classList.add('hidden');
+      const studentView = document.getElementById('studentView');
+      const adminView = document.getElementById('adminView');
+      const printView = document.getElementById('printView');
+
+      if (studentView) studentView.classList.add('hidden');
+      if (adminView) adminView.classList.add('hidden');
+      if (printView) printView.classList.add('hidden');
 
       const navStudent = document.getElementById('navStudentBtn');
       const navAdmin = document.getElementById('navAdminBtn');
       const navPrint = document.getElementById('navPrintBtn');
 
-      if (navStudent && navAdmin && navPrint) {
-        [navStudent, navAdmin, navPrint].forEach(btn => {
-          btn.className = "px-3 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 text-amber-100 hover:text-white hover:bg-white/20";
-        });
-      }
+      [navStudent, navAdmin, navPrint].forEach(btn => {
+        if (btn) btn.className = "px-3 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 text-amber-100 hover:text-white hover:bg-white/20";
+      });
 
       if (viewName === 'student') {
-        document.getElementById('studentView').classList.remove('hidden');
+        if (studentView) studentView.classList.remove('hidden');
         if (navStudent) navStudent.className = "px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-white text-orange-600 shadow-sm";
         renderStudentCard();
         renderHomeCountdownAndCalendar();
@@ -1423,7 +1502,7 @@
           requestAdminAccess('admin');
           return;
         }
-        document.getElementById('adminView').classList.remove('hidden');
+        if (adminView) adminView.classList.remove('hidden');
         if (navAdmin) navAdmin.className = "px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-white text-orange-600 shadow-sm";
         renderAdminTable();
         renderRewardsManager();
@@ -1433,7 +1512,7 @@
           requestAdminAccess('print');
           return;
         }
-        document.getElementById('printView').classList.remove('hidden');
+        if (printView) printView.classList.remove('hidden');
         if (navPrint) navPrint.className = "px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-white text-orange-600 shadow-sm";
         renderQRCards();
       }
@@ -1447,22 +1526,22 @@
       const btnRewards = document.getElementById('adminTabRewardsBtn');
       const btnEvents = document.getElementById('adminTabEventsBtn');
 
-      [tabStudents, tabRewards, tabEvents].forEach(t => t.classList.add('hidden'));
+      [tabStudents, tabRewards, tabEvents].forEach(t => { if (t) t.classList.add('hidden'); });
       [btnStudents, btnRewards, btnEvents].forEach(b => {
-        b.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition whitespace-nowrap";
+        if (b) b.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition whitespace-nowrap";
       });
 
       if (tabName === 'students') {
-        tabStudents.classList.remove('hidden');
-        btnStudents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
+        if (tabStudents) tabStudents.classList.remove('hidden');
+        if (btnStudents) btnStudents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
         renderAdminTable();
       } else if (tabName === 'rewards') {
-        tabRewards.classList.remove('hidden');
-        btnRewards.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
+        if (tabRewards) tabRewards.classList.remove('hidden');
+        if (btnRewards) btnRewards.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
         renderRewardsManager();
       } else if (tabName === 'events') {
-        tabEvents.classList.remove('hidden');
-        btnEvents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
+        if (tabEvents) tabEvents.classList.remove('hidden');
+        if (btnEvents) btnEvents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
         renderAdminEventsTable();
       }
     }
@@ -1511,7 +1590,7 @@
       if (!targetDateStr) return 0;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const target = new Date(targetDateStr);
+      const target = new Date(String(targetDateStr).replace(/-/g, '/'));
       target.setHours(0, 0, 0, 0);
       const diffTime = target.getTime() - today.getTime();
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -1534,8 +1613,7 @@
       const dateDisplay = document.getElementById('currentDateDisplay');
       if (dateDisplay) dateDisplay.textContent = dateStr;
 
-      // 排序事件：即將到來的排前面
-      const sortedEvents = [...classEvents].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const sortedEvents = [...classEvents].sort((a, b) => new Date(String(a.date).replace(/-/g, '/')) - new Date(String(b.date).replace(/-/g, '/')));
       const upcomingEvents = sortedEvents.filter(ev => getDaysDiff(ev.date) >= 0);
 
       const titleEl = document.getElementById('countdownEventTitle');
@@ -1543,6 +1621,8 @@
       const daysNumEl = document.getElementById('countdownDaysNum');
       const badgeEl = document.getElementById('countdownBadge');
       const tagEl = document.getElementById('countdownEventTag');
+
+      if (!titleEl || !descEl || !daysNumEl || !badgeEl || !tagEl) return;
 
       if (upcomingEvents.length > 0) {
         const topEvent = upcomingEvents[0];
@@ -1580,7 +1660,6 @@
         badgeEl.className = "bg-white/20 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
       }
 
-      // 渲染列表清單
       const listContainer = document.getElementById('homeCalendarList');
       if (!listContainer) return;
       listContainer.innerHTML = '';
@@ -1600,7 +1679,7 @@
           row.innerHTML = `
             <div class="truncate">
               <div class="flex items-center gap-1.5">
-                <span class="font-mono text-amber-200 font-bold">${ev.date.slice(5)}</span>
+                <span class="font-mono text-amber-200 font-bold">${String(ev.date).slice(5)}</span>
                 <span class="font-bold text-white truncate">${ev.title}</span>
                 <span class="text-[9px] bg-white/20 text-white px-1.5 py-0.5 rounded">${ev.tag}</span>
               </div>
@@ -1647,7 +1726,7 @@
         return;
       }
 
-      const sorted = [...classEvents].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const sorted = [...classEvents].sort((a, b) => new Date(String(a.date).replace(/-/g, '/')) - new Date(String(b.date).replace(/-/g, '/')));
 
       sorted.forEach(ev => {
         const diff = getDaysDiff(ev.date);
@@ -1684,30 +1763,49 @@
     }
 
     function openAddEventModal() {
-      document.getElementById('eventModalTitle').textContent = "新增行事曆事件";
-      document.getElementById('editEventId').value = "";
-      document.getElementById('eventDateInput').value = new Date().toISOString().slice(0, 10);
-      document.getElementById('eventTagInput').value = "考試測驗";
-      document.getElementById('eventTitleInput').value = "";
-      document.getElementById('eventDescInput').value = "";
-      document.getElementById('eventModal').classList.remove('hidden');
+      const titleEl = document.getElementById('eventModalTitle');
+      const editIdEl = document.getElementById('editEventId');
+      const dateEl = document.getElementById('eventDateInput');
+      const tagEl = document.getElementById('eventTagInput');
+      const eventTitleEl = document.getElementById('eventTitleInput');
+      const descEl = document.getElementById('eventDescInput');
+
+      if (titleEl) titleEl.textContent = "新增行事曆事件";
+      if (editIdEl) editIdEl.value = "";
+      if (dateEl) dateEl.value = new Date().toISOString().slice(0, 10);
+      if (tagEl) tagEl.value = "考試測驗";
+      if (eventTitleEl) eventTitleEl.value = "";
+      if (descEl) descEl.value = "";
+
+      const modal = document.getElementById('eventModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function openEditEventModal(id) {
       const ev = classEvents.find(e => e.id === id);
       if (!ev) return;
 
-      document.getElementById('eventModalTitle').textContent = "編輯行事曆事件";
-      document.getElementById('editEventId').value = ev.id;
-      document.getElementById('eventDateInput').value = ev.date;
-      document.getElementById('eventTagInput').value = ev.tag || "其他";
-      document.getElementById('eventTitleInput').value = ev.title;
-      document.getElementById('eventDescInput').value = ev.desc || "";
-      document.getElementById('eventModal').classList.remove('hidden');
+      const titleEl = document.getElementById('eventModalTitle');
+      const editIdEl = document.getElementById('editEventId');
+      const dateEl = document.getElementById('eventDateInput');
+      const tagEl = document.getElementById('eventTagInput');
+      const eventTitleEl = document.getElementById('eventTitleInput');
+      const descEl = document.getElementById('eventDescInput');
+
+      if (titleEl) titleEl.textContent = "編輯行事曆事件";
+      if (editIdEl) editIdEl.value = ev.id;
+      if (dateEl) dateEl.value = ev.date;
+      if (tagEl) tagEl.value = ev.tag || "其他";
+      if (eventTitleEl) eventTitleEl.value = ev.title;
+      if (descEl) descEl.value = ev.desc || "";
+
+      const modal = document.getElementById('eventModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeEventModal() {
-      document.getElementById('eventModal').classList.add('hidden');
+      const modal = document.getElementById('eventModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function saveEventItem(e) {
@@ -1737,7 +1835,6 @@
       renderAdminEventsTable();
       renderHomeCountdownAndCalendar();
 
-      // 同步行事曆事件至 Google 試算表
       sendDataToGoogleSheets({
         action: "saveEvents",
         events: classEvents
@@ -1768,100 +1865,113 @@
 
       if (!student) return;
 
-      document.getElementById('cardSeatNumber').textContent = `座號 ${String(student.seat).padStart(2, '0')} 號`;
+      const seatEl = document.getElementById('cardSeatNumber');
+      if (seatEl) seatEl.textContent = `座號 ${String(student.seat).padStart(2, '0')} 號`;
       
       const cardAvatarEl = document.getElementById('cardAvatar');
       const avatarVal = student.avatar || '🌟';
-      if (avatarVal.startsWith('data:image/') || avatarVal.startsWith('http://') || avatarVal.startsWith('https://')) {
-        cardAvatarEl.innerHTML = `<img src="${avatarVal}" alt="頭貼" class="w-full h-full object-cover rounded-full">`;
-      } else {
-        cardAvatarEl.innerHTML = avatarVal;
+      if (cardAvatarEl) {
+        if (avatarVal.startsWith('data:image/') || avatarVal.startsWith('http://') || avatarVal.startsWith('https://')) {
+          cardAvatarEl.innerHTML = `<img src="${avatarVal}" alt="頭貼" class="w-full h-full object-cover rounded-full">`;
+        } else {
+          cardAvatarEl.innerHTML = avatarVal;
+        }
       }
 
-      document.getElementById('cardStudentName').textContent = student.name;
-      document.getElementById('cardStudentId').textContent = `專屬代碼: ${student.id}`;
-      document.getElementById('cardPoints').textContent = student.points;
+      const nameEl = document.getElementById('cardStudentName');
+      const idEl = document.getElementById('cardStudentId');
+      const pointsEl = document.getElementById('cardPoints');
+      if (nameEl) nameEl.textContent = student.name;
+      if (idEl) idEl.textContent = `專屬代碼: ${student.id}`;
+      if (pointsEl) pointsEl.textContent = student.points;
 
-      // 💌 渲染專屬歡迎勉勵詞
       const welcomeMsgEl = document.getElementById('cardWelcomeMessage');
       if (welcomeMsgEl) {
         welcomeMsgEl.textContent = student.welcomeMessage || "🌻 歡迎來到向日葵班班！今天也要一起快樂學習、發揮最好的實力喔！";
       }
 
       const levelInfo = getStudentLevel(student.points);
-      document.getElementById('cardLevelName').textContent = levelInfo.name;
+      const levelEl = document.getElementById('cardLevelName');
+      if (levelEl) levelEl.textContent = levelInfo.name;
       
       const needed = Math.max(0, levelInfo.next - student.points);
       const span = levelInfo.next - levelInfo.prev;
       const currentInSpan = student.points - levelInfo.prev;
       const percent = Math.min(100, Math.max(5, Math.round((currentInSpan / span) * 100)));
 
-      document.getElementById('cardProgressText').textContent = needed > 0 ? `距離下一階稱號還差 ${needed} 點` : `已達最高稱號榮譽！`;
-      document.getElementById('cardProgressBar').style.width = `${percent}%`;
+      const progTextEl = document.getElementById('cardProgressText');
+      const progBarEl = document.getElementById('cardProgressBar');
+      if (progTextEl) progTextEl.textContent = needed > 0 ? `距離下一階稱號還差 ${needed} 點` : `已達最高稱號榮譽！`;
+      if (progBarEl) progBarEl.style.width = `${percent}%`;
 
       const rewardListEl = document.getElementById('studentRewardList');
-      rewardListEl.innerHTML = '';
+      if (rewardListEl) {
+        rewardListEl.innerHTML = '';
 
-      if (rewards.length === 0) {
-        rewardListEl.innerHTML = `<div class="text-xs text-slate-400 py-2 text-center">目前無可兌換項目</div>`;
-      } else {
-        rewards.forEach(rw => {
-          const canAfford = student.points >= rw.points;
-          const diff = rw.points - student.points;
-          const div = document.createElement('div');
-          div.className = `p-3 rounded-2xl border flex items-center justify-between gap-2 transition ${
-            canAfford ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-50 border-slate-200 opacity-80'
-          }`;
-          div.innerHTML = `
-            <div class="flex items-center space-x-3 overflow-hidden">
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${canAfford ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">
-                ${rw.emoji || '🎁'}
+        if (rewards.length === 0) {
+          rewardListEl.innerHTML = `<div class="text-xs text-slate-400 py-2 text-center">目前無可兌換項目</div>`;
+        } else {
+          rewards.forEach(rw => {
+            const canAfford = student.points >= rw.points;
+            const diff = rw.points - student.points;
+            const div = document.createElement('div');
+            div.className = `p-3 rounded-2xl border flex items-center justify-between gap-2 transition ${
+              canAfford ? 'bg-emerald-50/70 border-emerald-200' : 'bg-slate-50 border-slate-200 opacity-80'
+            }`;
+            div.innerHTML = `
+              <div class="flex items-center space-x-3 overflow-hidden">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${canAfford ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">
+                  ${rw.emoji || '🎁'}
+                </div>
+                <div class="truncate">
+                  <p class="font-bold text-xs text-slate-800 truncate">${rw.title}</p>
+                  <p class="text-[10px] text-slate-400 truncate">${rw.desc || '達到點數即可找老師兌換'}</p>
+                </div>
               </div>
-              <div class="truncate">
-                <p class="font-bold text-xs text-slate-800 truncate">${rw.title}</p>
-                <p class="text-[10px] text-slate-400 truncate">${rw.desc || '達到點數即可找老師兌換'}</p>
+              <div class="flex-shrink-0 text-right">
+                <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
+                  canAfford ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
+                }">
+                  ${rw.points} PTS
+                </span>
+                <p class="text-[9px] mt-0.5 font-medium ${canAfford ? 'text-emerald-600 font-bold' : 'text-slate-400'}">
+                  ${canAfford ? '✨ 可兌換' : `還差 ${diff} 點`}
+                </p>
               </div>
-            </div>
-            <div class="flex-shrink-0 text-right">
-              <span class="inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
-                canAfford ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'
-              }">
-                ${rw.points} PTS
-              </span>
-              <p class="text-[9px] mt-0.5 font-medium ${canAfford ? 'text-emerald-600 font-bold' : 'text-slate-400'}">
-                ${canAfford ? '✨ 可兌換' : `還差 ${diff} 點`}
-              </p>
-            </div>
-          `;
-          rewardListEl.appendChild(div);
-        });
+            `;
+            rewardListEl.appendChild(div);
+          });
+        }
       }
 
       const historyList = document.getElementById('cardHistoryList');
-      historyList.innerHTML = '';
+      if (historyList) {
+        historyList.innerHTML = '';
 
-      if (!student.history || student.history.length === 0) {
-        historyList.innerHTML = `<div class="text-xs text-slate-400 py-3 text-center">尚無積分變動紀錄</div>`;
-      } else {
-        const sortedHistory = [...student.history].reverse().slice(0, 5);
-        sortedHistory.forEach(item => {
-          const isPos = item.delta > 0;
-          const div = document.createElement('div');
-          div.className = "flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs";
-          div.innerHTML = `
-            <div>
-              <p class="font-bold text-slate-700">${item.reason}</p>
-              <p class="text-[10px] text-slate-400">${item.time}</p>
-            </div>
-            <span class="font-bold px-2 py-0.5 rounded-lg ${isPos ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
-              ${isPos ? '+' + item.delta : item.delta}
-            </span>
-          `;
-          historyList.appendChild(div);
-        });
+        if (!student.history || student.history.length === 0) {
+          historyList.innerHTML = `<div class="text-xs text-slate-400 py-3 text-center">尚無積分變動紀錄</div>`;
+        } else {
+          const sortedHistory = [...student.history].reverse().slice(0, 5);
+          sortedHistory.forEach(item => {
+            const isPos = item.delta > 0;
+            const div = document.createElement('div');
+            div.className = "flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs";
+            div.innerHTML = `
+              <div>
+                <p class="font-bold text-slate-700">${item.reason}</p>
+                <p class="text-[10px] text-slate-400">${item.time}</p>
+              </div>
+              <span class="font-bold px-2 py-0.5 rounded-lg ${isPos ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                ${isPos ? '+' + item.delta : item.delta}
+              </span>
+            `;
+            historyList.appendChild(div);
+          });
+        }
       }
 
-      document.getElementById('cardLastUpdated').textContent = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+      const updatedEl = document.getElementById('cardLastUpdated');
+      if (updatedEl) updatedEl.textContent = new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
     }
 
     function copyCurrentStudentUrl() {
@@ -1885,8 +1995,10 @@
       const tbody = document.getElementById('adminStudentTableBody');
       const badge = document.getElementById('studentCountBadge');
       if (badge) badge.textContent = students.length;
+      if (!tbody) return;
 
-      const keyword = (document.getElementById('adminSearchInput').value || '').trim().toLowerCase();
+      const searchInput = document.getElementById('adminSearchInput');
+      const keyword = (searchInput ? searchInput.value : '').trim().toLowerCase();
       tbody.innerHTML = '';
 
       const filtered = students.filter(s => {
@@ -2026,18 +2138,26 @@
       const student = students.find(s => s.id === studentId);
       if (!student) return;
 
-      document.getElementById('welcomeModalStudentId').value = student.id;
-      document.getElementById('welcomeModalStudentName').textContent = `${student.name} (#${student.seat})`;
-      document.getElementById('welcomeModalInput').value = student.welcomeMessage || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
-      document.getElementById('welcomeMessageModal').classList.remove('hidden');
+      const idInput = document.getElementById('welcomeModalStudentId');
+      const nameSpan = document.getElementById('welcomeModalStudentName');
+      const msgInput = document.getElementById('welcomeModalInput');
+
+      if (idInput) idInput.value = student.id;
+      if (nameSpan) nameSpan.textContent = `${student.name} (#${student.seat})`;
+      if (msgInput) msgInput.value = student.welcomeMessage || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
+
+      const modal = document.getElementById('welcomeMessageModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeWelcomeMessageModal() {
-      document.getElementById('welcomeMessageModal').classList.add('hidden');
+      const modal = document.getElementById('welcomeMessageModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function setQuickWelcome(text) {
-      document.getElementById('welcomeModalInput').value = text;
+      const msgInput = document.getElementById('welcomeModalInput');
+      if (msgInput) msgInput.value = text;
     }
 
     function saveWelcomeMessage(e) {
@@ -2115,30 +2235,49 @@
     }
 
     function openAddRewardModal() {
-      document.getElementById('rewardModalTitle').textContent = "新增獎勵兌換項目";
-      document.getElementById('editRewardId').value = "";
-      document.getElementById('rewardEmojiInput').value = "🎁";
-      document.getElementById('rewardPointsInput').value = "30";
-      document.getElementById('rewardTitleInput').value = "";
-      document.getElementById('rewardDescInput').value = "";
-      document.getElementById('rewardModal').classList.remove('hidden');
+      const titleEl = document.getElementById('rewardModalTitle');
+      const editIdEl = document.getElementById('editRewardId');
+      const emojiEl = document.getElementById('rewardEmojiInput');
+      const ptsEl = document.getElementById('rewardPointsInput');
+      const rewardTitleEl = document.getElementById('rewardTitleInput');
+      const descEl = document.getElementById('rewardDescInput');
+
+      if (titleEl) titleEl.textContent = "新增獎勵兌換項目";
+      if (editIdEl) editIdEl.value = "";
+      if (emojiEl) emojiEl.value = "🎁";
+      if (ptsEl) ptsEl.value = "30";
+      if (rewardTitleEl) rewardTitleEl.value = "";
+      if (descEl) descEl.value = "";
+
+      const modal = document.getElementById('rewardModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function openEditRewardModal(id) {
       const rw = rewards.find(r => r.id === id);
       if (!rw) return;
 
-      document.getElementById('rewardModalTitle').textContent = "編輯獎勵項目";
-      document.getElementById('editRewardId').value = rw.id;
-      document.getElementById('rewardEmojiInput').value = rw.emoji || "🎁";
-      document.getElementById('rewardPointsInput').value = rw.points;
-      document.getElementById('rewardTitleInput').value = rw.title;
-      document.getElementById('rewardDescInput').value = rw.desc || "";
-      document.getElementById('rewardModal').classList.remove('hidden');
+      const titleEl = document.getElementById('rewardModalTitle');
+      const editIdEl = document.getElementById('editRewardId');
+      const emojiEl = document.getElementById('rewardEmojiInput');
+      const ptsEl = document.getElementById('rewardPointsInput');
+      const rewardTitleEl = document.getElementById('rewardTitleInput');
+      const descEl = document.getElementById('rewardDescInput');
+
+      if (titleEl) titleEl.textContent = "編輯獎勵項目";
+      if (editIdEl) editIdEl.value = rw.id;
+      if (emojiEl) emojiEl.value = rw.emoji || "🎁";
+      if (ptsEl) ptsEl.value = rw.points;
+      if (rewardTitleEl) rewardTitleEl.value = rw.title;
+      if (descEl) descEl.value = rw.desc || "";
+
+      const modal = document.getElementById('rewardModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeRewardModal() {
-      document.getElementById('rewardModal').classList.add('hidden');
+      const modal = document.getElementById('rewardModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function saveRewardItem(e) {
@@ -2187,32 +2326,41 @@
         return;
       }
 
-      document.getElementById('claimStudentId').value = student.id;
-      document.getElementById('claimStudentName').textContent = `${student.name} (#${student.seat})`;
-      document.getElementById('claimCurrentPoints').textContent = `${student.points} 點`;
+      const idInput = document.getElementById('claimStudentId');
+      const nameSpan = document.getElementById('claimStudentName');
+      const ptsSpan = document.getElementById('claimCurrentPoints');
+
+      if (idInput) idInput.value = student.id;
+      if (nameSpan) nameSpan.textContent = `${student.name} (#${student.seat})`;
+      if (ptsSpan) ptsSpan.textContent = `${student.points} 點`;
 
       const select = document.getElementById('claimRewardSelect');
-      select.innerHTML = '';
+      if (select) {
+        select.innerHTML = '';
+        rewards.forEach(rw => {
+          const opt = document.createElement('option');
+          opt.value = rw.id;
+          opt.textContent = `${rw.emoji || '🎁'} ${rw.title} (扣 ${rw.points} 點)`;
+          select.appendChild(opt);
+        });
 
-      rewards.forEach(rw => {
-        const opt = document.createElement('option');
-        opt.value = rw.id;
-        opt.textContent = `${rw.emoji || '🎁'} ${rw.title} (扣 ${rw.points} 點)`;
-        select.appendChild(opt);
-      });
+        onClaimRewardSelected(rewards[0].id);
+      }
 
-      onClaimRewardSelected(rewards[0].id);
-      document.getElementById('claimModal').classList.remove('hidden');
+      const modal = document.getElementById('claimModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeClaimModal() {
-      document.getElementById('claimModal').classList.add('hidden');
+      const modal = document.getElementById('claimModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function onClaimRewardSelected(rewardId) {
       const rw = rewards.find(r => r.id === rewardId);
-      if (rw) {
-        document.getElementById('claimDeductAmount').textContent = rw.points;
+      const deductEl = document.getElementById('claimDeductAmount');
+      if (rw && deductEl) {
+        deductEl.textContent = rw.points;
       }
     }
 
@@ -2232,6 +2380,7 @@
 
     function renderQRCards() {
       const grid = document.getElementById('qrCardsGrid');
+      if (!grid) return;
       grid.innerHTML = '';
 
       const baseUrl = window.location.origin + window.location.pathname;
@@ -2288,38 +2437,62 @@
     }
 
     function openAddStudentModal() {
-      document.getElementById('modalTitle').textContent = "新增學生";
-      document.getElementById('editOriginalId').value = "";
-      document.getElementById('inputSeat').value = students.length + 1;
-      document.getElementById('inputId').value = `S${String(students.length + 1).padStart(3, '0')}`;
-      document.getElementById('inputName').value = "";
-      document.getElementById('inputWelcomeMessage').value = "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
-      document.getElementById('inputAvatar').value = "🌟";
-      document.getElementById('inputPoints').value = "0";
-      document.getElementById('studentModal').classList.remove('hidden');
+      const titleEl = document.getElementById('modalTitle');
+      const editIdEl = document.getElementById('editOriginalId');
+      const seatEl = document.getElementById('inputSeat');
+      const idEl = document.getElementById('inputId');
+      const nameEl = document.getElementById('inputName');
+      const welcomeEl = document.getElementById('inputWelcomeMessage');
+      const avatarEl = document.getElementById('inputAvatar');
+      const ptsEl = document.getElementById('inputPoints');
+
+      if (titleEl) titleEl.textContent = "新增學生";
+      if (editIdEl) editIdEl.value = "";
+      if (seatEl) seatEl.value = students.length + 1;
+      if (idEl) idEl.value = `S${String(students.length + 1).padStart(3, '0')}`;
+      if (nameEl) nameEl.value = "";
+      if (welcomeEl) welcomeEl.value = "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
+      if (avatarEl) avatarEl.value = "🌟";
+      if (ptsEl) ptsEl.value = "0";
+
+      const modal = document.getElementById('studentModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function openEditStudentModal(id) {
       const student = students.find(s => s.id === id);
       if (!student) return;
 
-      document.getElementById('modalTitle').textContent = "編輯學生資料";
-      document.getElementById('editOriginalId').value = student.id;
-      document.getElementById('inputSeat').value = student.seat;
-      document.getElementById('inputId').value = student.id;
-      document.getElementById('inputName').value = student.name;
-      document.getElementById('inputWelcomeMessage').value = student.welcomeMessage || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
-      document.getElementById('inputAvatar').value = student.avatar || "🌟";
-      document.getElementById('inputPoints').value = student.points;
-      document.getElementById('studentModal').classList.remove('hidden');
+      const titleEl = document.getElementById('modalTitle');
+      const editIdEl = document.getElementById('editOriginalId');
+      const seatEl = document.getElementById('inputSeat');
+      const idEl = document.getElementById('inputId');
+      const nameEl = document.getElementById('inputName');
+      const welcomeEl = document.getElementById('inputWelcomeMessage');
+      const avatarEl = document.getElementById('inputAvatar');
+      const ptsEl = document.getElementById('inputPoints');
+
+      if (titleEl) titleEl.textContent = "編輯學生資料";
+      if (editIdEl) editIdEl.value = student.id;
+      if (seatEl) seatEl.value = student.seat;
+      if (idEl) idEl.value = student.id;
+      if (nameEl) nameEl.value = student.name;
+      if (welcomeEl) welcomeEl.value = student.welcomeMessage || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
+      if (avatarEl) avatarEl.value = student.avatar || "🌟";
+      if (ptsEl) ptsEl.value = student.points;
+
+      const modal = document.getElementById('studentModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeStudentModal() {
-      document.getElementById('studentModal').classList.add('hidden');
+      const modal = document.getElementById('studentModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function selectEmoji(emoji) {
-      document.getElementById('inputAvatar').value = emoji;
+      const avatarInput = document.getElementById('inputAvatar');
+      if (avatarInput) avatarInput.value = emoji;
     }
 
     function saveStudent(e) {
@@ -2387,21 +2560,32 @@
       const student = students.find(s => s.id === id);
       if (!student) return;
 
-      document.getElementById('pointStudentId').value = student.id;
-      document.getElementById('pointModalStudentName').textContent = `${student.name} (#${student.seat})`;
-      document.getElementById('pointModalCurrentPoints').textContent = student.points;
-      document.getElementById('pointChangeAmount').value = "";
-      document.getElementById('pointReason').value = "";
-      document.getElementById('pointModal').classList.remove('hidden');
+      const idInput = document.getElementById('pointStudentId');
+      const nameSpan = document.getElementById('pointModalStudentName');
+      const ptsSpan = document.getElementById('pointModalCurrentPoints');
+      const changeInput = document.getElementById('pointChangeAmount');
+      const reasonInput = document.getElementById('pointReason');
+
+      if (idInput) idInput.value = student.id;
+      if (nameSpan) nameSpan.textContent = `${student.name} (#${student.seat})`;
+      if (ptsSpan) ptsSpan.textContent = student.points;
+      if (changeInput) changeInput.value = "";
+      if (reasonInput) reasonInput.value = "";
+
+      const modal = document.getElementById('pointModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closePointModal() {
-      document.getElementById('pointModal').classList.add('hidden');
+      const modal = document.getElementById('pointModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function setQuickReason(reason, amount) {
-      document.getElementById('pointReason').value = reason;
-      document.getElementById('pointChangeAmount').value = amount;
+      const reasonInput = document.getElementById('pointReason');
+      const amountInput = document.getElementById('pointChangeAmount');
+      if (reasonInput) reasonInput.value = reason;
+      if (amountInput) amountInput.value = amount;
     }
 
     function submitPointAdjustment(e) {
@@ -2425,12 +2609,15 @@
       
       tempSelectedAvatar = student.avatar || '🌟';
       updateAvatarPreview(tempSelectedAvatar);
-      document.getElementById('avatarManualInput').value = '';
-      document.getElementById('avatarModal').classList.remove('hidden');
+      const manualInput = document.getElementById('avatarManualInput');
+      if (manualInput) manualInput.value = '';
+      const modal = document.getElementById('avatarModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function closeStudentAvatarModal() {
-      document.getElementById('avatarModal').classList.add('hidden');
+      const modal = document.getElementById('avatarModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     function updateAvatarPreview(val) {
@@ -2568,6 +2755,8 @@
       const toast = document.getElementById('toast');
       const toastMsg = document.getElementById('toastMsg');
       const toastIcon = document.getElementById('toastIcon');
+
+      if (!toast || !toastMsg || !toastIcon) return;
 
       toastMsg.textContent = msg;
 
