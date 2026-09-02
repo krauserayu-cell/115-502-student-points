@@ -1628,12 +1628,37 @@
     }
 
     // ================= ⏰ 首頁倒數與行事曆渲染邏輯 =================
+    // 將任何雜亂的日期字串(含 GMT/時區/Date物件字串)統一轉換為乾淨的 YYYY/MM/DD
+    function formatCleanDate(rawDateStr) {
+      if (!rawDateStr) return '';
+      const str = String(rawDateStr).trim();
+      
+      // 若本來就是標準 YYYY-MM-DD 或 YYYY/MM/DD 格式直接轉換
+      const simpleMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+      if (simpleMatch) {
+        return `${simpleMatch[1]}/${String(simpleMatch[2]).padStart(2, '0')}/${String(simpleMatch[3]).padStart(2, '0')}`;
+      }
+
+      // 若包含時區或英文字串 (例如: Fri Sep 11 2026 00:00:00 GMT+0800 ...)
+      const parsed = new Date(str);
+      if (!isNaN(parsed.getTime())) {
+        const year = parsed.getFullYear();
+        const month = String(parsed.getMonth() + 1).padStart(2, '0');
+        const day = String(parsed.getDate()).padStart(2, '0');
+        return `${year}/${month}/${day}`;
+      }
+
+      return str;
+    }
+
     function getDaysDiff(targetDateStr) {
       if (!targetDateStr) return 0;
+      const cleanDate = formatCleanDate(targetDateStr);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const target = new Date(String(targetDateStr).replace(/-/g, '/'));
+      const target = new Date(cleanDate);
       target.setHours(0, 0, 0, 0);
+      if (isNaN(target.getTime())) return 0;
       const diffTime = target.getTime() - today.getTime();
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
@@ -1655,7 +1680,11 @@
       const dateDisplay = document.getElementById('currentDateDisplay');
       if (dateDisplay) dateDisplay.textContent = dateStr;
 
-      const sortedEvents = [...classEvents].sort((a, b) => new Date(String(a.date).replace(/-/g, '/')) - new Date(String(b.date).replace(/-/g, '/')));
+      const sortedEvents = [...classEvents].sort((a, b) => {
+        const tA = new Date(formatCleanDate(a.date)).getTime() || 0;
+        const tB = new Date(formatCleanDate(b.date)).getTime() || 0;
+        return tA - tB;
+      });
       const upcomingEvents = sortedEvents.filter(ev => getDaysDiff(ev.date) >= 0);
 
       const titleEl = document.getElementById('countdownEventTitle');
@@ -1669,9 +1698,10 @@
       if (upcomingEvents.length > 0) {
         const topEvent = upcomingEvents[0];
         const days = getDaysDiff(topEvent.date);
+        const displayDate = formatCleanDate(topEvent.date);
 
         titleEl.textContent = topEvent.title;
-        descEl.textContent = topEvent.desc || `日期：${topEvent.date}`;
+        descEl.textContent = topEvent.desc || `日期：${displayDate}`;
         tagEl.textContent = topEvent.tag || '提醒';
         daysNumEl.textContent = days;
 
@@ -1716,14 +1746,14 @@
           else if (diff > 0) diffBadge = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white flex-shrink-0">${diff} 天後</span>`;
           else diffBadge = `<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/20 text-amber-200 flex-shrink-0">已過</span>`;
 
-          // 格式化為西元年月日 (YYYY/MM/DD)
-          const formattedDate = String(ev.date).replace(/-/g, '/');
+          // 一律格式化為乾淨俐落的西元年月日 (YYYY/MM/DD)
+          const cleanDate = formatCleanDate(ev.date);
 
           const row = document.createElement('div');
           row.className = "bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl border border-white/15 flex items-center justify-between gap-3 transition text-xs";
           row.innerHTML = `
             <div class="flex items-center gap-2.5 truncate">
-              <span class="font-mono text-amber-200 font-bold flex-shrink-0 text-[11px]">${formattedDate}</span>
+              <span class="font-mono text-amber-200 font-bold flex-shrink-0 text-[11px]">${cleanDate}</span>
               <span class="font-bold text-white truncate text-xs">${ev.title}</span>
             </div>
             <div class="flex-shrink-0">
@@ -1767,10 +1797,15 @@
         return;
       }
 
-      const sorted = [...classEvents].sort((a, b) => new Date(String(a.date).replace(/-/g, '/')) - new Date(String(b.date).replace(/-/g, '/')));
+      const sorted = [...classEvents].sort((a, b) => {
+        const tA = new Date(formatCleanDate(a.date)).getTime() || 0;
+        const tB = new Date(formatCleanDate(b.date)).getTime() || 0;
+        return tA - tB;
+      });
 
       sorted.forEach(ev => {
         const diff = getDaysDiff(ev.date);
+        const cleanDate = formatCleanDate(ev.date);
         let countdownText = "";
         if (diff === 0) countdownText = `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-md text-xs">🔥 今天截止</span>`;
         else if (diff > 0) countdownText = `<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md text-xs">倒數 ${diff} 天</span>`;
@@ -1779,7 +1814,7 @@
         const tr = document.createElement('tr');
         tr.className = "hover:bg-amber-50/40 transition";
         tr.innerHTML = `
-          <td class="py-3 px-4 font-mono font-bold text-slate-700">${ev.date}</td>
+          <td class="py-3 px-4 font-mono font-bold text-slate-700">${cleanDate}</td>
           <td class="py-3 px-4">${countdownText}</td>
           <td class="py-3 px-4 font-bold text-slate-800">${ev.title}</td>
           <td class="py-3 px-4">
@@ -2831,16 +2866,17 @@
             students = parsed.students;
             if (parsed.rewards && Array.isArray(parsed.rewards)) rewards = parsed.rewards;
             if (parsed.events && Array.isArray(parsed.events)) classEvents = parsed.events;
-            if (parsed.adminPassword) {
-              adminPassword = parsed.adminPassword;
-              hasCustomPassword = true;
-              localStorage.setItem('class_points_custom_pwd', adminPassword);
-            }
-          } else if (Array.isArray(parsed)) {
-            students = parsed;
-          }
-          currentStudentId = students[0]?.id || null;
-          saveSystemData();
+        if (incomingEvents && incomingEvents.length > 0) {
+          classEvents = incomingEvents.map((ev, idx) => ({
+            id: String(ev.id || `EV${String(idx+1).padStart(2,'0')}`),
+            date: formatCleanDate(ev.date || ev['日期'] || ''),
+            title: String(ev.title || ev['事件名稱'] || ev['事項'] || ''),
+            tag: String(ev.tag || ev['類型'] || ev['標籤'] || '其他'),
+            desc: String(ev.desc || ev['說明'] || ev['備註'] || '')
+          }));
+        }
+
+        saveSystemData();
           refreshAllViews();
           showToast("成功匯入學生積分、行事曆與獎勵資料！", "success");
         } catch (err) {
