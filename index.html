@@ -2509,6 +2509,174 @@
       const nameEl = document.getElementById('inputName');
       const roleEl = document.getElementById('inputRole');
       const welcomeEl = document.getElementById('inputWelcomeMessage');
+      const avatarEl = document.getElementById('inputAvatar');
+      const ptsEl = document.getElementById('inputPoints');
+
+      if (titleEl) titleEl.textContent = "新增學生";
+      if (editIdEl) editIdEl.value = "";
+      if (seatEl) seatEl.value = students.length + 1;
+      if (idEl) idEl.value = `S${String(students.length + 1).padStart(3, '0')}`;
+      if (nameEl) nameEl.value = "";
+      if (roleEl) roleEl.value = "";
+      if (welcomeEl) welcomeEl.value = "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
+      if (avatarEl) avatarEl.value = "🌟";
+      if (ptsEl) ptsEl.value = "0";
+
+      const modal = document.getElementById('studentModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function openEditStudentModal(id) {
+      const student = students.find(s => s.id === id);
+      if (!student) return;
+
+      const titleEl = document.getElementById('modalTitle');
+      const editIdEl = document.getElementById('editOriginalId');
+      const seatEl = document.getElementById('inputSeat');
+      const idEl = document.getElementById('inputId');
+      const nameEl = document.getElementById('inputName');
+      const roleEl = document.getElementById('inputRole');
+      const welcomeEl = document.getElementById('inputWelcomeMessage');
+      const avatarEl = document.getElementById('inputAvatar');
+      const ptsEl = document.getElementById('inputPoints');
+
+      if (titleEl) titleEl.textContent = "編輯學生資料";
+      if (editIdEl) editIdEl.value = student.id;
+      if (seatEl) seatEl.value = student.seat;
+      if (idEl) idEl.value = student.id;
+      if (nameEl) nameEl.value = student.name;
+      if (roleEl) roleEl.value = student.role || "";
+      if (welcomeEl) welcomeEl.value = student.welcomeMessage || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
+      if (avatarEl) avatarEl.value = student.avatar || "🌟";
+      if (ptsEl) ptsEl.value = student.points;
+
+      const modal = document.getElementById('studentModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeStudentModal() {
+      const modal = document.getElementById('studentModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function selectEmoji(emoji) {
+      const avatarInput = document.getElementById('inputAvatar');
+      if (avatarInput) avatarInput.value = emoji;
+    }
+
+    function setQuickRole(role) {
+      const roleInput = document.getElementById('inputRole');
+      if (roleInput) roleInput.value = role;
+    }
+
+    function saveStudent(e) {
+      e.preventDefault();
+      const origId = document.getElementById('editOriginalId').value;
+      const seat = parseInt(document.getElementById('inputSeat').value, 10);
+      const id = document.getElementById('inputId').value.trim();
+      const name = document.getElementById('inputName').value.trim();
+      const role = document.getElementById('inputRole').value.trim();
+      const welcomeMessage = document.getElementById('inputWelcomeMessage').value.trim() || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
+      const avatar = document.getElementById('inputAvatar').value.trim() || "🌟";
+      const points = parseInt(document.getElementById('inputPoints').value, 10) || 0;
+
+      if (!origId && students.some(s => s.id === id)) {
+        showToast("學號/代碼不可重複！", "error");
+        return;
+      }
+
+      if (origId) {
+        const index = students.findIndex(s => s.id === origId);
+        if (index !== -1) {
+          students[index].seat = seat;
+          students[index].id = id;
+          students[index].name = name;
+          students[index].role = role;
+          students[index].welcomeMessage = welcomeMessage;
+          students[index].avatar = avatar;
+          students[index].points = points;
+        }
+        localModifiedTracker[id + '_role'] = Date.now();
+        showToast(`已更新 ${name} 的資料`, "success");
+      } else {
+        students.push({
+          id,
+          seat,
+          name,
+          role,
+          avatar,
+          points,
+          welcomeMessage,
+          history: [{
+            time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+            reason: "建立學生帳號",
+            delta: points
+          }]
+        });
+        showToast(`已新增學生 ${name}`, "success");
+      }
+
+      saveSystemData();
+      closeStudentModal();
+      refreshAllViews();
+
+      sendDataToGoogleSheets({
+        action: "saveStudent",
+        id: id,
+        seat: seat,
+        name: name,
+        role: role,
+        points: points,
+        avatar: avatar,
+        welcomeMessage: welcomeMessage
+      });
+    }
+
+    function deleteStudent(id) {
+      const student = students.find(s => s.id === id);
+      if (!student) return;
+
+      students = students.filter(s => s.id !== id);
+      if (currentStudentId === id && students.length > 0) {
+        currentStudentId = students[0].id;
+      }
+      saveSystemData();
+      refreshAllViews();
+      showToast(`學生 ${student.name} 已成功刪除`, "info");
+    }
+
+    function openPointModal(id) {
+      const student = students.find(s => s.id === id);
+      if (!student) return;
+
+      const idInput = document.getElementById('pointStudentId');
+      const nameSpan = document.getElementById('pointModalStudentName');
+      const ptsSpan = document.getElementById('pointModalCurrentPoints');
+      const changeInput = document.getElementById('pointChangeAmount');
+      const reasonInput = document.getElementById('pointReason');
+
+      if (idInput) idInput.value = student.id;
+      if (nameSpan) nameSpan.textContent = `${student.name} (#${student.seat})`;
+      if (ptsSpan) ptsSpan.textContent = student.points;
+      if (changeInput) changeInput.value = "";
+      if (reasonInput) reasonInput.value = "";
+
+      const modal = document.getElementById('pointModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closePointModal() {
+      const modal = document.getElementById('pointModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function setQuickReason(reason, amount) {
+      const reasonInput = document.getElementById('pointReason');
+      const amountInput = document.getElementById('pointChangeAmount');
+      if (reasonInput) reasonInput.value = reason;
+      if (amountInput) amountInput.value = amount;
+    }
+
     function submitPointAdjustment(e) {
       e.preventDefault();
       const id = document.getElementById('pointStudentId').value;
@@ -2587,7 +2755,6 @@
         const img = new Image();
         img.onload = function() {
           const canvas = document.createElement('canvas');
-          // 壓縮為 80x80 輕量化大頭貼 (<3KB)，節省空間並加速載入
           const size = 80;
           canvas.width = size;
           canvas.height = size;
@@ -2627,7 +2794,6 @@
       closeStudentAvatarModal();
       showToast("個人頭像已成功更新並保存！✨", "success");
 
-      // 同步發送給 Google 試算表儲存
       sendDataToGoogleSheets({
         action: "updateAvatar",
         id: student.id,
