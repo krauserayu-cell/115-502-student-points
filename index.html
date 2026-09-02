@@ -1286,7 +1286,7 @@
         if (incomingEvents && incomingEvents.length > 0) {
           classEvents = incomingEvents.map((ev, idx) => ({
             id: String(ev.id || `EV${String(idx+1).padStart(2,'0')}`),
-            date: String(ev.date || ev['日期'] || ''),
+            date: formatCleanDate(ev.date || ev['日期'] || ''),
             title: String(ev.title || ev['事件名稱'] || ev['事項'] || ''),
             tag: String(ev.tag || ev['類型'] || ev['標籤'] || '其他'),
             desc: String(ev.desc || ev['說明'] || ev['備註'] || '')
@@ -2866,17 +2866,16 @@
             students = parsed.students;
             if (parsed.rewards && Array.isArray(parsed.rewards)) rewards = parsed.rewards;
             if (parsed.events && Array.isArray(parsed.events)) classEvents = parsed.events;
-        if (incomingEvents && incomingEvents.length > 0) {
-          classEvents = incomingEvents.map((ev, idx) => ({
-            id: String(ev.id || `EV${String(idx+1).padStart(2,'0')}`),
-            date: formatCleanDate(ev.date || ev['日期'] || ''),
-            title: String(ev.title || ev['事件名稱'] || ev['事項'] || ''),
-            tag: String(ev.tag || ev['類型'] || ev['標籤'] || '其他'),
-            desc: String(ev.desc || ev['說明'] || ev['備註'] || '')
-          }));
-        }
-
-        saveSystemData();
+            if (parsed.adminPassword) {
+              adminPassword = parsed.adminPassword;
+              hasCustomPassword = true;
+              localStorage.setItem('class_points_custom_pwd', adminPassword);
+            }
+          } else if (Array.isArray(parsed)) {
+            students = parsed;
+          }
+          currentStudentId = students[0]?.id || null;
+          saveSystemData();
           refreshAllViews();
           showToast("成功匯入學生積分、行事曆與獎勵資料！", "success");
         } catch (err) {
