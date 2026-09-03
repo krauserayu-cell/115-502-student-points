@@ -1563,12 +1563,14 @@
       const tabStudents = document.getElementById('adminTabStudents');
       const tabRewards = document.getElementById('adminTabRewards');
       const tabEvents = document.getElementById('adminTabEvents');
+      const tabMessages = document.getElementById('adminTabMessages');
       const btnStudents = document.getElementById('adminTabStudentsBtn');
       const btnRewards = document.getElementById('adminTabRewardsBtn');
       const btnEvents = document.getElementById('adminTabEventsBtn');
+      const btnMessages = document.getElementById('adminTabMessagesBtn');
 
-      [tabStudents, tabRewards, tabEvents].forEach(t => { if (t) t.classList.add('hidden'); });
-      [btnStudents, btnRewards, btnEvents].forEach(b => {
+      [tabStudents, tabRewards, tabEvents, tabMessages].forEach(t => { if (t) t.classList.add('hidden'); });
+      [btnStudents, btnRewards, btnEvents, btnMessages].forEach(b => {
         if (b) b.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition whitespace-nowrap";
       });
 
@@ -1584,6 +1586,10 @@
         if (tabEvents) tabEvents.classList.remove('hidden');
         if (btnEvents) btnEvents.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
         renderAdminEventsTable();
+      } else if (tabName === 'messages') {
+        if (tabMessages) tabMessages.classList.remove('hidden');
+        if (btnMessages) btnMessages.className = "px-4 py-2.5 font-bold text-sm border-b-2 border-orange-500 text-orange-600 flex items-center gap-2 transition whitespace-nowrap";
+        renderAdminMessages();
       }
     }
 
@@ -1591,9 +1597,11 @@
       updateStudentSelector();
       renderStudentCard();
       renderHomeCountdownAndCalendar();
+      renderStudentMessages();
       renderAdminTable();
       renderRewardsManager();
       renderAdminEventsTable();
+      renderAdminMessages();
       renderQRCards();
     }
 
@@ -1617,224 +1625,253 @@
     function onStudentSelectChange(val) {
       currentStudentId = val;
       renderStudentCard();
+      renderStudentMessages();
     }
+    // ================= 🔒 學生個人專屬私密聯絡箱邏輯 =================
+    function renderStudentMessages() {
+      const container = document.getElementById('studentMessageThread');
+      if (!container) return;
 
-    function getStudentLevel(points) {
-      if (points >= 100) return { name: "傳奇榮譽大師 👑", next: 150, max: 150, prev: 100 };
-      if (points >= 50) return { name: "鑽石探險家 💎", next: 100, max: 100, prev: 50 };
-      if (points >= 30) return { name: "黃金勇者 ⚔️", next: 50, max: 50, prev: 30 };
-      if (points >= 15) return { name: "進階小達人 🌿", next: 30, max: 30, prev: 15 };
-      return { name: "初階探索者 🌟", next: 15, max: 15, prev: 0 };
-    }
+      const student = students.find(s => 
+        String(s.id).toLowerCase() === String(currentStudentId).toLowerCase() || 
+        String(s.seat) === String(currentStudentId)
+      ) || students[0];
 
-    // ================= ⏰ 首頁倒數與行事曆渲染邏輯 =================
-    // 將任何雜亂的日期字串(含 GMT/時區/Date物件字串)統一轉換為乾淨的 YYYY/MM/DD
-    function formatCleanDate(rawDateStr) {
-      if (!rawDateStr) return '';
-      const str = String(rawDateStr).trim();
-      
-      // 若本來就是標準 YYYY-MM-DD 或 YYYY/MM/DD 格式直接轉換
-      const simpleMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
-      if (simpleMatch) {
-        return `${simpleMatch[1]}/${String(simpleMatch[2]).padStart(2, '0')}/${String(simpleMatch[3]).padStart(2, '0')}`;
-      }
+      if (!student) return;
 
-      // 若包含時區或英文字串 (例如: Fri Sep 11 2026 00:00:00 GMT+0800 ...)
-      const parsed = new Date(str);
-      if (!isNaN(parsed.getTime())) {
-        const year = parsed.getFullYear();
-        const month = String(parsed.getMonth() + 1).padStart(2, '0');
-        const day = String(parsed.getDate()).padStart(2, '0');
-        return `${year}/${month}/${day}`;
-      }
+      // 🔐 嚴格隱私過濾：只篩選出屬於該學生的留言與老師回覆，絕不混入其他學生的訊息
+      const thread = classMessages.filter(m => String(m.studentId).toLowerCase() === String(student.id).toLowerCase());
 
-      return str;
-    }
+      container.innerHTML = '';
 
-    function getDaysDiff(targetDateStr) {
-      if (!targetDateStr) return 0;
-      const cleanDate = formatCleanDate(targetDateStr);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const target = new Date(cleanDate);
-      target.setHours(0, 0, 0, 0);
-      if (isNaN(target.getTime())) return 0;
-      const diffTime = target.getTime() - today.getTime();
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    }
-
-    function getTagBadgeClass(tag) {
-      switch(tag) {
-        case '考試測驗': return 'bg-rose-100 text-rose-800 border-rose-200';
-        case '作業繳交': return 'bg-amber-100 text-amber-900 border-amber-200';
-        case '戶外活動': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-        case '班級活動': return 'bg-purple-100 text-purple-800 border-purple-200';
-        case '學校重要日': return 'bg-sky-100 text-sky-800 border-sky-200';
-        default: return 'bg-slate-100 text-slate-800 border-slate-200';
-      }
-    }
-
-    function renderHomeCountdownAndCalendar() {
-      const today = new Date();
-      const dateStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
-      const dateDisplay = document.getElementById('currentDateDisplay');
-      if (dateDisplay) dateDisplay.textContent = dateStr;
-
-      const sortedEvents = [...classEvents].sort((a, b) => {
-        const tA = new Date(formatCleanDate(a.date)).getTime() || 0;
-        const tB = new Date(formatCleanDate(b.date)).getTime() || 0;
-        return tA - tB;
-      });
-      const upcomingEvents = sortedEvents.filter(ev => getDaysDiff(ev.date) >= 0);
-
-      const titleEl = document.getElementById('countdownEventTitle');
-      const descEl = document.getElementById('countdownEventDesc');
-      const daysNumEl = document.getElementById('countdownDaysNum');
-      const badgeEl = document.getElementById('countdownBadge');
-      const tagEl = document.getElementById('countdownEventTag');
-
-      if (!titleEl || !descEl || !daysNumEl || !badgeEl || !tagEl) return;
-
-      if (upcomingEvents.length > 0) {
-        const topEvent = upcomingEvents[0];
-        const days = getDaysDiff(topEvent.date);
-        const displayDate = formatCleanDate(topEvent.date);
-
-        titleEl.textContent = topEvent.title;
-        descEl.textContent = topEvent.desc || `日期：${displayDate}`;
-        tagEl.textContent = topEvent.tag || '提醒';
-        daysNumEl.textContent = days;
-
-        if (days === 0) {
-          badgeEl.className = "bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse";
-          badgeEl.textContent = "🔥 就是今天";
-        } else if (days <= 3) {
-          badgeEl.className = "bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
-          badgeEl.textContent = `⚡ 倒數 ${days} 天`;
-        } else {
-          badgeEl.className = "bg-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
-          badgeEl.textContent = `📌 倒數中`;
-        }
-      } else if (sortedEvents.length > 0) {
-        const lastEvent = sortedEvents[sortedEvents.length - 1];
-        titleEl.textContent = lastEvent.title;
-        descEl.textContent = "目前無未來事件，此為最近完成事項";
-        tagEl.textContent = lastEvent.tag;
-        daysNumEl.textContent = "0";
-        badgeEl.textContent = "已結束";
-        badgeEl.className = "bg-slate-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
-      } else {
-        titleEl.textContent = "目前尚無排定事件";
-        descEl.textContent = "老師尚未新增班級重要行事曆";
-        tagEl.textContent = "向日葵班班";
-        daysNumEl.textContent = "--";
-        badgeEl.textContent = "無提醒";
-        badgeEl.className = "bg-white/20 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
-      }
-
-      const listContainer = document.getElementById('homeCalendarList');
-      if (!listContainer) return;
-      listContainer.innerHTML = '';
-
-      if (sortedEvents.length === 0) {
-        listContainer.innerHTML = `<div class="text-xs text-amber-100/80 py-2 text-center">暫無其他日程安排</div>`;
-      } else {
-        sortedEvents.forEach(ev => {
-          const diff = getDaysDiff(ev.date);
-          let diffBadge = "";
-          if (diff === 0) diffBadge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500 text-white flex-shrink-0">今天</span>`;
-          else if (diff > 0) diffBadge = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white flex-shrink-0">${diff} 天後</span>`;
-          else diffBadge = `<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/20 text-amber-200 flex-shrink-0">已過</span>`;
-
-          // 一律格式化為乾淨俐落的西元年月日 (YYYY/MM/DD)
-          const cleanDate = formatCleanDate(ev.date);
-
-          const row = document.createElement('div');
-          row.className = "bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl border border-white/15 flex items-center justify-between gap-3 transition text-xs";
-          row.innerHTML = `
-            <div class="flex items-center gap-2.5 truncate">
-              <span class="font-mono text-amber-200 font-bold flex-shrink-0 text-[11px]">${cleanDate}</span>
-              <span class="font-bold text-white truncate text-xs">${ev.title}</span>
-            </div>
-            <div class="flex-shrink-0">
-              ${diffBadge}
-            </div>
-          `;
-          listContainer.appendChild(row);
-        });
-      }
-    }
-
-    function toggleHomeCalendarList() {
-      const list = document.getElementById('homeCalendarList');
-      const chevron = document.getElementById('calendarChevron');
-      const btn = document.getElementById('toggleCalendarBtn');
-      if (!list) return;
-
-      isHomeCalendarExpanded = !isHomeCalendarExpanded;
-      if (isHomeCalendarExpanded) {
-        list.classList.remove('hidden');
-        if (chevron) chevron.className = "fa-solid fa-chevron-up text-[10px]";
-        if (btn) btn.querySelector('span').textContent = "收起日程";
-      } else {
-        list.classList.add('hidden');
-        if (chevron) chevron.className = "fa-solid fa-chevron-down text-[10px]";
-        if (btn) btn.querySelector('span').textContent = "查看全部事項";
-      }
-    }
-
-    // ================= 後台行事曆管理 =================
-    function renderAdminEventsTable() {
-      const tbody = document.getElementById('adminEventsTableBody');
-      const badge = document.getElementById('eventCountBadge');
-      if (badge) badge.textContent = classEvents.length;
-      if (!tbody) return;
-
-      tbody.innerHTML = '';
-
-      if (classEvents.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 text-xs">目前尚未設定任何班級行事曆事件</td></tr>`;
+      if (thread.length === 0) {
+        container.innerHTML = `
+          <div class="py-5 text-center text-xs text-slate-400">
+            <i class="fa-regular fa-comment-dots text-2xl text-amber-200 mb-1 block"></i>
+            目前尚無親師聯絡紀錄，歡迎在此給老師留言！
+          </div>
+        `;
         return;
       }
 
-      const sorted = [...classEvents].sort((a, b) => {
-        const tA = new Date(formatCleanDate(a.date)).getTime() || 0;
-        const tB = new Date(formatCleanDate(b.date)).getTime() || 0;
-        return tA - tB;
+      thread.forEach(msg => {
+        const isTeacher = msg.senderType === 'teacher';
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `flex flex-col ${isTeacher ? 'items-start' : 'items-end'}`;
+
+        if (isTeacher) {
+          msgDiv.innerHTML = `
+            <div class="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-amber-900">
+              <span class="w-4 h-4 rounded-full bg-orange-500 text-white flex items-center justify-center text-[9px]">
+                <i class="fa-solid fa-chalkboard-user"></i>
+              </span>
+              <span>${msg.senderName || '導師回覆'}</span>
+              <span class="text-[10px] text-slate-400 font-normal">${msg.time}</span>
+            </div>
+            <div class="bg-white text-slate-800 border border-amber-200 p-2.5 rounded-2xl rounded-tl-sm text-xs max-w-[85%] shadow-2xs leading-relaxed">
+              ${msg.content}
+            </div>
+          `;
+        } else {
+          const isParent = msg.senderType === 'parent';
+          msgDiv.innerHTML = `
+            <div class="flex items-center gap-1.5 mb-1 text-[11px] font-bold text-slate-600">
+              <span class="text-[10px] text-slate-400 font-normal">${msg.time}</span>
+              <span>${msg.senderName || (isParent ? '家長留言' : '學生留言')}</span>
+              <span class="w-4 h-4 rounded-full ${isParent ? 'bg-amber-100 text-amber-800' : 'bg-orange-100 text-orange-800'} flex items-center justify-center text-[9px]">
+                <i class="${isParent ? 'fa-solid fa-house-user' : 'fa-solid fa-user-graduate'}"></i>
+              </span>
+            </div>
+            <div class="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-2.5 rounded-2xl rounded-tr-sm text-xs max-w-[85%] shadow-2xs leading-relaxed">
+              ${msg.content}
+            </div>
+          `;
+        }
+        container.appendChild(msgDiv);
       });
 
-      sorted.forEach(ev => {
-        const diff = getDaysDiff(ev.date);
-        const cleanDate = formatCleanDate(ev.date);
-        let countdownText = "";
-        if (diff === 0) countdownText = `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-md text-xs">🔥 今天截止</span>`;
-        else if (diff > 0) countdownText = `<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md text-xs">倒數 ${diff} 天</span>`;
-        else countdownText = `<span class="bg-slate-100 text-slate-400 font-medium px-2 py-0.5 rounded-md text-xs">已結束</span>`;
+      // 自動滾動到底部最新訊息
+      container.scrollTop = container.scrollHeight;
+    }
 
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-amber-50/40 transition";
-        tr.innerHTML = `
-          <td class="py-3 px-4 font-mono font-bold text-slate-700">${cleanDate}</td>
-          <td class="py-3 px-4">${countdownText}</td>
-          <td class="py-3 px-4 font-bold text-slate-800">${ev.title}</td>
-          <td class="py-3 px-4">
-            <span class="text-xs px-2.5 py-1 rounded-full border ${getTagBadgeClass(ev.tag)} font-semibold">
-              ${ev.tag}
-            </span>
-          </td>
-          <td class="py-3 px-4 text-xs text-slate-500 max-w-[200px] truncate">${ev.desc || '無'}</td>
-          <td class="py-3 px-4 text-right">
-            <div class="flex items-center justify-end space-x-1.5">
-              <button onclick="openEditEventModal('${ev.id}')" class="text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg text-xs font-medium" title="編輯事件">
-                <i class="fa-solid fa-pen-to-square"></i>
-              </button>
-              <button onclick="deleteEventItem('${ev.id}')" class="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg text-xs font-medium" title="刪除事件">
-                <i class="fa-solid fa-trash"></i>
-              </button>
+    // 學生或家長送出留言
+    function handleSendStudentMessage(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('messageInputContent');
+      const senderTypeEl = document.getElementById('messageSenderType');
+      const content = inputEl ? inputEl.value.trim() : '';
+      const senderType = senderTypeEl ? senderTypeEl.value : 'parent';
+
+      if (!content) return;
+
+      const student = students.find(s => 
+        String(s.id).toLowerCase() === String(currentStudentId).toLowerCase() || 
+        String(s.seat) === String(currentStudentId)
+      ) || students[0];
+
+      if (!student) return;
+
+      const now = new Date();
+      const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      const senderName = senderType === 'parent' ? `${student.name}家長` : student.name;
+
+      const newMsg = {
+        id: "MSG_" + Date.now(),
+        studentId: student.id,
+        senderType: senderType,
+        senderName: senderName,
+        content: content,
+        time: timeStr
+      };
+
+      classMessages.push(newMsg);
+      saveSystemData();
+      inputEl.value = '';
+
+      renderStudentMessages();
+      renderAdminMessages();
+      showToast("留言已送達！老師將會於後台看見並給予回覆喔。", "success");
+
+      // 雲端同步發送
+      sendDataToGoogleSheets({
+        action: "sendMessage",
+        message: newMsg
+      });
+    }
+
+    // ================= 👩‍🏫 教師後台親師信箱管理與回覆 =================
+    function renderAdminMessages() {
+      const container = document.getElementById('adminMessagesContainer');
+      const badge = document.getElementById('messageCountBadge');
+      const filterSelect = document.getElementById('adminMessageStudentFilter');
+      if (!container) return;
+
+      if (badge) badge.textContent = classMessages.length;
+
+      // 更新篩選下拉選單
+      if (filterSelect && filterSelect.options.length <= 1) {
+        students.sort((a,b) => a.seat - b.seat).forEach(st => {
+          const opt = document.createElement('option');
+          opt.value = st.id;
+          opt.textContent = `[${String(st.seat).padStart(2,'0')}號] ${st.name} 的聯絡信箱`;
+          filterSelect.appendChild(opt);
+        });
+      }
+
+      const selectedStudentFilter = filterSelect ? filterSelect.value : 'ALL';
+      container.innerHTML = '';
+
+      // 依學生分組展示對話
+      const studentsToRender = selectedStudentFilter === 'ALL' 
+        ? students.sort((a,b) => a.seat - b.seat) 
+        : students.filter(s => s.id === selectedStudentFilter);
+
+      let totalRendered = 0;
+
+      studentsToRender.forEach(st => {
+        const studentMsgs = classMessages.filter(m => String(m.studentId).toLowerCase() === String(st.id).toLowerCase());
+        
+        // 若全部篩選且無任何留言，可選擇顯示簡短區塊
+        if (selectedStudentFilter === 'ALL' && studentMsgs.length === 0) return;
+
+        totalRendered++;
+
+        const card = document.createElement('div');
+        card.className = "bg-white p-5 rounded-3xl border border-slate-200 shadow-sm transition hover:shadow-md";
+
+        let threadHtml = '';
+        if (studentMsgs.length === 0) {
+          threadHtml = `<div class="text-xs text-slate-400 py-3 text-center">該學生目前尚無往來留言</div>`;
+        } else {
+          studentMsgs.forEach(m => {
+            const isTeacher = m.senderType === 'teacher';
+            threadHtml += `
+              <div class="flex items-start gap-2.5 p-2.5 rounded-2xl ${isTeacher ? 'bg-amber-50/80 border border-amber-200' : 'bg-slate-50 border border-slate-200'}">
+                <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0 mt-0.5 ${isTeacher ? 'bg-orange-500 text-white' : 'bg-slate-300 text-slate-700'}">
+                  <i class="${isTeacher ? 'fa-solid fa-chalkboard-user' : (m.senderType === 'parent' ? 'fa-solid fa-house-user' : 'fa-solid fa-user-graduate')}"></i>
+                </span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex justify-between items-center text-[11px] mb-0.5">
+                    <strong class="${isTeacher ? 'text-amber-900 font-black' : 'text-slate-700'}">${m.senderName}</strong>
+                    <span class="text-slate-400 font-mono text-[10px]">${m.time}</span>
+                  </div>
+                  <p class="text-xs text-slate-700 leading-relaxed break-words">${m.content}</p>
+                </div>
+              </div>
+            `;
+          });
+        }
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg text-xs font-mono font-bold">#${String(st.seat).padStart(2,'0')}</span>
+              <h4 class="text-sm font-black text-slate-800">${st.name} 的專屬親師對話</h4>
+              ${st.role ? `<span class="text-[10px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full font-bold border border-amber-200">${st.role}</span>` : ''}
             </div>
-          </td>
+            <span class="text-xs text-slate-400">${studentMsgs.length} 則通訊</span>
+          </div>
+
+          <div class="space-y-2 mb-3.5 max-h-60 overflow-y-auto pr-1">
+            ${threadHtml}
+          </div>
+
+          <!-- 老師即時回覆輸入框 -->
+          <form onsubmit="handleSendTeacherReply(event, '${st.id}')" class="flex gap-2 pt-2 border-t border-slate-100">
+            <input type="text" id="teacherReplyInput_${st.id}" required placeholder="回覆給 ${st.name} 與家長（僅該學生卡片可見）..." class="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white">
+            <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm whitespace-nowrap">
+              <i class="fa-solid fa-reply text-[10px]"></i> 回覆
+            </button>
+          </form>
         `;
-        tbody.appendChild(tr);
+        container.appendChild(card);
+      });
+
+      if (totalRendered === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center bg-white rounded-3xl border border-dashed border-slate-300">
+            <i class="fa-regular fa-comments text-4xl text-slate-300 mb-2 block"></i>
+            <p class="text-sm font-bold text-slate-600">目前尚無任何親師留言紀錄</p>
+            <p class="text-xs text-slate-400 mt-1">學生或家長於個人專屬卡片送出留言後，將會在此集中呈現以供回覆</p>
+          </div>
+        `;
+      }
+    }
+
+    // 教師回覆留言
+    function handleSendTeacherReply(e, studentId) {
+      e.preventDefault();
+      const inputEl = document.getElementById(`teacherReplyInput_${studentId}`);
+      const content = inputEl ? inputEl.value.trim() : '';
+
+      if (!content) return;
+
+      const student = students.find(s => s.id === studentId);
+      if (!student) return;
+
+      const now = new Date();
+      const timeStr = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+      const replyMsg = {
+        id: "MSG_" + Date.now(),
+        studentId: student.id,
+        senderType: "teacher",
+        senderName: "向日葵導師",
+        content: content,
+        time: timeStr
+      };
+
+      classMessages.push(replyMsg);
+      saveSystemData();
+      inputEl.value = '';
+
+      renderAdminMessages();
+      renderStudentMessages();
+      showToast(`已成功回覆給 ${student.name} 的聯絡信箱！`, "success");
+
+      sendDataToGoogleSheets({
+        action: "sendMessage",
+        message: replyMsg
       });
     }
 
