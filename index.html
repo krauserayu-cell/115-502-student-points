@@ -45,18 +45,6 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
-    /* 對話框尖角效果 */
-    .speech-bubble::before {
-      content: '';
-      position: absolute;
-      bottom: -8px;
-      left: 24px;
-      border-width: 8px 8px 0;
-      border-style: solid;
-      border-color: #fef3c7 transparent;
-      display: block;
-      width: 0;
-    }
   </style>
 </head>
 <body class="bg-amber-50/40 text-slate-800 min-h-screen font-sans antialiased flex flex-col">
@@ -176,7 +164,7 @@
           </div>
         </div>
 
-        <!-- 展開所有近期行事曆清單 -->
+        <!-- 展開所有近期行事曆清單 (精簡版：僅年月日與名稱) -->
         <div class="relative z-10">
           <div class="flex justify-between items-center text-xs font-bold mb-2">
             <span class="text-amber-100 flex items-center gap-1">
@@ -291,7 +279,7 @@
           </div>
 
           <!-- 最近積分變更歷史紀錄 -->
-          <div>
+          <div class="mb-6">
             <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center justify-between">
               <span><i class="fa-solid fa-clock-rotate-left mr-1.5 text-slate-400"></i> 最近點數紀錄</span>
               <span class="text-xs text-slate-400 font-normal">最近 5 筆</span>
@@ -300,6 +288,38 @@
               <!-- 動態載入點數紀錄 -->
             </div>
           </div>
+
+          <!-- 🔒 親師生私密雙向留言信箱 (僅該學生與老師可見) -->
+          <div class="bg-amber-50/60 rounded-2xl p-4 border border-amber-200/80 shadow-xs">
+            <div class="flex items-center justify-between mb-2.5">
+              <h3 class="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                <i class="fa-solid fa-lock text-orange-500"></i> 親師私密聯絡信箱
+              </h3>
+              <span class="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <i class="fa-solid fa-shield-halved text-[9px]"></i> 僅本人與老師可見
+              </span>
+            </div>
+
+            <!-- 對話紀錄顯示區 -->
+            <div id="studentMessageThread" class="space-y-2.5 mb-3 max-h-56 overflow-y-auto pr-1 p-2 bg-white/70 rounded-xl border border-amber-100">
+              <!-- 動態渲染該學生的私密對話 -->
+            </div>
+
+            <!-- 留言輸入發送區 -->
+            <form id="studentMessageForm" onsubmit="handleSendStudentMessage(event)" class="space-y-2">
+              <div class="flex items-center gap-2">
+                <select id="messageSenderType" class="bg-white border border-amber-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500">
+                  <option value="parent">👨‍👩‍👧 家長留言</option>
+                  <option value="student">👦 學生發問</option>
+                </select>
+                <input type="text" id="messageInputContent" required placeholder="給老師寫點悄悄話或詢問作業..." class="flex-1 bg-white border border-amber-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs whitespace-nowrap">
+                  <i class="fa-solid fa-paper-plane text-[10px]"></i> 送出
+                </button>
+              </div>
+            </form>
+          </div>
+
         </div>
 
         <!-- 底部更新時間 -->
@@ -325,7 +345,7 @@
               <i class="fa-solid fa-shield-halved"></i> 密碼保護中
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-1">向日葵班班專屬管理後台 · 歡迎詞、積分與行事曆皆會同步 Google 試算表</p>
+          <p class="text-xs text-slate-500 mt-1">向日葵班班專屬管理後台 · 歡迎詞、積分、行事曆與親師信箱皆同步 Google 試算表</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button onclick="fetchFromGoogleSheets(true)" class="bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-2 rounded-xl text-sm font-bold transition flex items-center gap-1.5 border border-amber-200 shadow-xs">
@@ -360,6 +380,9 @@
         </button>
         <button id="adminTabEventsBtn" onclick="switchAdminTab('events')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition whitespace-nowrap">
           <i class="fa-solid fa-calendar-days"></i> 班級行事曆與事件管理 (<span id="eventCountBadge">0</span>)
+        </button>
+        <button id="adminTabMessagesBtn" onclick="switchAdminTab('messages')" class="px-4 py-2.5 font-bold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 flex items-center gap-2 transition whitespace-nowrap">
+          <i class="fa-solid fa-comments"></i> 親師私密聯絡信箱 (<span id="messageCountBadge">0</span>)
         </button>
       </div>
 
@@ -456,6 +479,31 @@
           </div>
         </div>
       </div>
+
+      <!-- 後台分頁 4: 親師私密留言信箱管理與回覆 -->
+      <div id="adminTabMessages" class="hidden">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-comments text-orange-500"></i> 學生與家長私密留言信箱
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">每位學生的對話各自獨立，在此回覆的內容只會出現在該學生的專屬查詢卡片中</p>
+          </div>
+          <!-- 學生篩選下拉選單 -->
+          <div class="flex items-center gap-2">
+            <label for="adminMessageStudentFilter" class="text-xs font-bold text-slate-600 whitespace-nowrap">篩選學生：</label>
+            <select id="adminMessageStudentFilter" onchange="renderAdminMessages()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <option value="ALL">全部學生留言</option>
+              <!-- 動態載入學生名冊選項 -->
+            </select>
+          </div>
+        </div>
+
+        <div id="adminMessagesContainer" class="space-y-4">
+          <!-- 動態依學生分組渲染留言對話卡片與老師回覆輸入框 -->
+        </div>
+      </div>
+
     </section>
 
     <!-- ================= 視圖 3: QR Code 批量列印 (Print / QR Codes View) ================= -->
@@ -1095,10 +1143,31 @@
       }
     ];
 
+    // 預設親師留言範例
+    const DEFAULT_MESSAGES = [
+      {
+        id: "MSG_1",
+        studentId: "S001",
+        senderType: "parent",
+        senderName: "王小明家長",
+        content: "老師好，小明昨天晚上有點咳嗽，今天有讓他帶溫水壺去學校，麻煩老師多提醒他喝水，謝謝！",
+        time: "09/01 08:20"
+      },
+      {
+        id: "MSG_2",
+        studentId: "S001",
+        senderType: "teacher",
+        senderName: "向日葵導師",
+        content: "家長您好，收到！今天會多留意小明的精神狀況並提醒他多補充溫水，請放心喔！",
+        time: "09/01 08:45"
+      }
+    ];
+
     // 全域變數狀態
     let students = [];
     let rewards = [];
     let classEvents = [];
+    let classMessages = [];
     let adminPassword = DEFAULT_ADMIN_PASSWORD;
     let hasCustomPassword = false;
     let isAdminAuthenticated = false;
@@ -1109,6 +1178,39 @@
     let tempSelectedAvatar = '🌟';
     let isHomeCalendarExpanded = false;
     let localModifiedTracker = {};
+
+    // 日期格式化清洗器 (將 GMT 或長字串格式化為 YYYY/MM/DD)
+    function formatCleanDate(rawDate) {
+      if (!rawDate) return '';
+      if (rawDate instanceof Date) {
+        const y = rawDate.getFullYear();
+        const m = String(rawDate.getMonth() + 1).padStart(2, '0');
+        const d = String(rawDate.getDate()).padStart(2, '0');
+        return `${y}/${m}/${d}`;
+      }
+      const str = String(rawDate).trim();
+      const m1 = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+      if (m1) {
+        return `${m1[1]}/${String(m1[2]).padStart(2, '0')}/${String(m1[3]).padStart(2, '0')}`;
+      }
+      const parsed = new Date(str.replace(/-/g, '/'));
+      if (!isNaN(parsed.getTime())) {
+        const y = parsed.getFullYear();
+        const m = String(parsed.getMonth() + 1).padStart(2, '0');
+        const d = String(parsed.getDate()).padStart(2, '0');
+        return `${y}/${m}/${d}`;
+      }
+      return str;
+    }
+
+    // 等級計算函式
+    function getStudentLevel(points) {
+      if (points >= 100) return { name: "傳奇榮譽大師 👑", next: 150, max: 150, prev: 100 };
+      if (points >= 50) return { name: "鑽石探險家 💎", next: 100, max: 100, prev: 50 };
+      if (points >= 30) return { name: "黃金勇者 ⚔️", next: 50, max: 50, prev: 30 };
+      if (points >= 15) return { name: "進階小達人 🌿", next: 30, max: 30, prev: 15 };
+      return { name: "初階探索者 🌟", next: 15, max: 15, prev: 0 };
+    }
 
     function initApp() {
       loadSystemData();
@@ -1202,6 +1304,7 @@
         let incomingStudents = null;
         let incomingRewards = null;
         let incomingEvents = null;
+        let incomingMessages = null;
 
         if (Array.isArray(data)) {
           incomingStudents = data;
@@ -1211,6 +1314,7 @@
           
           if (Array.isArray(data.rewards)) incomingRewards = data.rewards;
           if (Array.isArray(data.events)) incomingEvents = data.events;
+          if (Array.isArray(data.messages)) incomingMessages = data.messages;
           if (data.adminPassword && !hasCustomPassword) {
             adminPassword = String(data.adminPassword);
           }
@@ -1293,6 +1397,17 @@
           }));
         }
 
+        if (incomingMessages && incomingMessages.length > 0) {
+          classMessages = incomingMessages.map((m, idx) => ({
+            id: String(m.id || `MSG_${idx+1}`),
+            studentId: String(m.studentId || m['學號'] || '').trim(),
+            senderType: String(m.senderType || m['身分'] || 'parent'),
+            senderName: String(m.senderName || m['發言人'] || '家長'),
+            content: String(m.content || m['內容'] || ''),
+            time: String(m.time || m['時間'] || '')
+          }));
+        }
+
         saveSystemData();
         refreshAllViews();
 
@@ -1348,6 +1463,15 @@
           classEvents = JSON.parse(JSON.stringify(DEFAULT_EVENTS));
         }
 
+        const storedMessagesStr = localStorage.getItem('class_points_messages');
+        if (storedMessagesStr) {
+          classMessages = JSON.parse(storedMessagesStr);
+        } else if (window.__messagesStore) {
+          classMessages = window.__messagesStore;
+        } else {
+          classMessages = JSON.parse(JSON.stringify(DEFAULT_MESSAGES));
+        }
+
         const savedCustomPwd = localStorage.getItem('class_points_custom_pwd');
         if (savedCustomPwd && savedCustomPwd.trim() !== '') {
           adminPassword = savedCustomPwd;
@@ -1361,6 +1485,7 @@
         students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
         rewards = JSON.parse(JSON.stringify(DEFAULT_REWARDS));
         classEvents = JSON.parse(JSON.stringify(DEFAULT_EVENTS));
+        classMessages = JSON.parse(JSON.stringify(DEFAULT_MESSAGES));
         adminPassword = DEFAULT_ADMIN_PASSWORD;
       }
     }
@@ -1369,11 +1494,13 @@
       window.__studentDataStore = students;
       window.__rewardsStore = rewards;
       window.__eventsStore = classEvents;
+      window.__messagesStore = classMessages;
       window.__adminPwdStore = adminPassword;
       try {
         localStorage.setItem('class_points_students', JSON.stringify(students));
         localStorage.setItem('class_points_rewards', JSON.stringify(rewards));
         localStorage.setItem('class_points_events', JSON.stringify(classEvents));
+        localStorage.setItem('class_points_messages', JSON.stringify(classMessages));
         if (hasCustomPassword) {
           localStorage.setItem('class_points_custom_pwd', adminPassword);
         }
@@ -1382,7 +1509,7 @@
       }
     }
 
-    // 核心資料雲端發送器 (支援點數、頭像、歡迎勉勵詞、幹部職稱、行事曆事件)
+    // 核心資料雲端發送器
     async function sendDataToGoogleSheets(payload) {
       try {
         fetch(GAS_API_URL, {
@@ -1538,6 +1665,7 @@
         if (navStudent) navStudent.className = "px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 bg-white text-orange-600 shadow-sm";
         renderStudentCard();
         renderHomeCountdownAndCalendar();
+        renderStudentMessages();
       } else if (viewName === 'admin') {
         if (!isAdminAuthenticated) {
           requestAdminAccess('admin');
@@ -1548,6 +1676,7 @@
         renderAdminTable();
         renderRewardsManager();
         renderAdminEventsTable();
+        renderAdminMessages();
       } else if (viewName === 'print') {
         if (!isAdminAuthenticated) {
           requestAdminAccess('print');
@@ -1627,6 +1756,130 @@
       renderStudentCard();
       renderStudentMessages();
     }
+
+    // ================= ⏰ 首頁倒數與行事曆渲染邏輯 =================
+    function getDaysDiff(targetDateStr) {
+      if (!targetDateStr) return 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(String(targetDateStr).replace(/-/g, '/'));
+      target.setHours(0, 0, 0, 0);
+      const diffTime = target.getTime() - today.getTime();
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    function getTagBadgeClass(tag) {
+      switch(tag) {
+        case '考試測驗': return 'bg-rose-100 text-rose-800 border-rose-200';
+        case '作業繳交': return 'bg-amber-100 text-amber-900 border-amber-200';
+        case '戶外活動': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        case '班級活動': return 'bg-purple-100 text-purple-800 border-purple-200';
+        case '學校重要日': return 'bg-sky-100 text-sky-800 border-sky-200';
+        default: return 'bg-slate-100 text-slate-800 border-slate-200';
+      }
+    }
+
+    function renderHomeCountdownAndCalendar() {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+      const dateDisplay = document.getElementById('currentDateDisplay');
+      if (dateDisplay) dateDisplay.textContent = dateStr;
+
+      const sortedEvents = [...classEvents].sort((a, b) => new Date(String(a.date).replace(/-/g, '/')) - new Date(String(b.date).replace(/-/g, '/')));
+      const upcomingEvents = sortedEvents.filter(ev => getDaysDiff(ev.date) >= 0);
+
+      const titleEl = document.getElementById('countdownEventTitle');
+      const descEl = document.getElementById('countdownEventDesc');
+      const daysNumEl = document.getElementById('countdownDaysNum');
+      const badgeEl = document.getElementById('countdownBadge');
+      const tagEl = document.getElementById('countdownEventTag');
+
+      if (!titleEl || !descEl || !daysNumEl || !badgeEl || !tagEl) return;
+
+      if (upcomingEvents.length > 0) {
+        const topEvent = upcomingEvents[0];
+        const days = getDaysDiff(topEvent.date);
+
+        titleEl.textContent = topEvent.title;
+        descEl.textContent = topEvent.desc || `日期：${topEvent.date}`;
+        tagEl.textContent = topEvent.tag || '提醒';
+        daysNumEl.textContent = days;
+
+        if (days === 0) {
+          badgeEl.className = "bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse";
+          badgeEl.textContent = "🔥 就是今天";
+        } else if (days <= 3) {
+          badgeEl.className = "bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
+          badgeEl.textContent = `⚡ 倒數 ${days} 天`;
+        } else {
+          badgeEl.className = "bg-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
+          badgeEl.textContent = `📌 倒數中`;
+        }
+      } else if (sortedEvents.length > 0) {
+        const lastEvent = sortedEvents[sortedEvents.length - 1];
+        titleEl.textContent = lastEvent.title;
+        descEl.textContent = "目前無未來事件，此為最近完成事項";
+        tagEl.textContent = lastEvent.tag;
+        daysNumEl.textContent = "0";
+        badgeEl.textContent = "已結束";
+        badgeEl.className = "bg-slate-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
+      } else {
+        titleEl.textContent = "目前尚無排定事件";
+        descEl.textContent = "老師尚未新增班級重要行事曆";
+        tagEl.textContent = "向日葵班班";
+        daysNumEl.textContent = "--";
+        badgeEl.textContent = "無提醒";
+        badgeEl.className = "bg-white/20 text-white text-[10px] font-black px-2 py-0.5 rounded-full";
+      }
+
+      const listContainer = document.getElementById('homeCalendarList');
+      if (!listContainer) return;
+      listContainer.innerHTML = '';
+
+      if (sortedEvents.length === 0) {
+        listContainer.innerHTML = `<div class="text-xs text-amber-100/80 py-2 text-center">暫無其他日程安排</div>`;
+      } else {
+        sortedEvents.forEach(ev => {
+          const diff = getDaysDiff(ev.date);
+          let diffBadge = "";
+          if (diff === 0) diffBadge = `<span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500 text-white">今天</span>`;
+          else if (diff > 0) diffBadge = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/25 text-white">${diff} 天後</span>`;
+          else diffBadge = `<span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/20 text-amber-200">已過</span>`;
+
+          const row = document.createElement('div');
+          row.className = "bg-white/10 hover:bg-white/20 p-2.5 rounded-xl border border-white/15 flex items-center justify-between gap-2 transition text-xs";
+          row.innerHTML = `
+            <div class="truncate flex items-center gap-2">
+              <span class="font-mono text-amber-200 font-bold tracking-tight">${formatCleanDate(ev.date)}</span>
+              <span class="font-bold text-white truncate">${ev.title}</span>
+            </div>
+            <div class="flex-shrink-0">
+              ${diffBadge}
+            </div>
+          `;
+          listContainer.appendChild(row);
+        });
+      }
+    }
+
+    function toggleHomeCalendarList() {
+      const list = document.getElementById('homeCalendarList');
+      const chevron = document.getElementById('calendarChevron');
+      const btn = document.getElementById('toggleCalendarBtn');
+      if (!list) return;
+
+      isHomeCalendarExpanded = !isHomeCalendarExpanded;
+      if (isHomeCalendarExpanded) {
+        list.classList.remove('hidden');
+        if (chevron) chevron.className = "fa-solid fa-chevron-up text-[10px]";
+        if (btn) btn.querySelector('span').textContent = "收起日程";
+      } else {
+        list.classList.add('hidden');
+        if (chevron) chevron.className = "fa-solid fa-chevron-down text-[10px]";
+        if (btn) btn.querySelector('span').textContent = "查看全部事項";
+      }
+    }
+
     // ================= 🔒 學生個人專屬私密聯絡箱邏輯 =================
     function renderStudentMessages() {
       const container = document.getElementById('studentMessageThread');
@@ -1639,15 +1892,13 @@
 
       if (!student) return;
 
-      // 🔐 嚴格隱私過濾：只篩選出屬於該學生的留言與老師回覆，絕不混入其他學生的訊息
       const thread = classMessages.filter(m => String(m.studentId).toLowerCase() === String(student.id).toLowerCase());
-
       container.innerHTML = '';
 
       if (thread.length === 0) {
         container.innerHTML = `
           <div class="py-5 text-center text-xs text-slate-400">
-            <i class="fa-regular fa-comment-dots text-2xl text-amber-200 mb-1 block"></i>
+            <i class="fa-regular fa-comment-dots text-2xl text-amber-300 mb-1 block"></i>
             目前尚無親師聯絡紀錄，歡迎在此給老師留言！
           </div>
         `;
@@ -1690,11 +1941,9 @@
         container.appendChild(msgDiv);
       });
 
-      // 自動滾動到底部最新訊息
       container.scrollTop = container.scrollHeight;
     }
 
-    // 學生或家長送出留言
     function handleSendStudentMessage(e) {
       e.preventDefault();
       const inputEl = document.getElementById('messageInputContent');
@@ -1732,7 +1981,6 @@
       renderAdminMessages();
       showToast("留言已送達！老師將會於後台看見並給予回覆喔。", "success");
 
-      // 雲端同步發送
       sendDataToGoogleSheets({
         action: "sendMessage",
         message: newMsg
@@ -1748,7 +1996,6 @@
 
       if (badge) badge.textContent = classMessages.length;
 
-      // 更新篩選下拉選單
       if (filterSelect && filterSelect.options.length <= 1) {
         students.sort((a,b) => a.seat - b.seat).forEach(st => {
           const opt = document.createElement('option');
@@ -1761,7 +2008,6 @@
       const selectedStudentFilter = filterSelect ? filterSelect.value : 'ALL';
       container.innerHTML = '';
 
-      // 依學生分組展示對話
       const studentsToRender = selectedStudentFilter === 'ALL' 
         ? students.sort((a,b) => a.seat - b.seat) 
         : students.filter(s => s.id === selectedStudentFilter);
@@ -1770,8 +2016,6 @@
 
       studentsToRender.forEach(st => {
         const studentMsgs = classMessages.filter(m => String(m.studentId).toLowerCase() === String(st.id).toLowerCase());
-        
-        // 若全部篩選且無任何留言，可選擇顯示簡短區塊
         if (selectedStudentFilter === 'ALL' && studentMsgs.length === 0) return;
 
         totalRendered++;
@@ -1809,7 +2053,7 @@
               <h4 class="text-sm font-black text-slate-800">${st.name} 的專屬親師對話</h4>
               ${st.role ? `<span class="text-[10px] bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full font-bold border border-amber-200">${st.role}</span>` : ''}
             </div>
-            <span class="text-xs text-slate-400">${studentMsgs.length} 則通訊</span>
+            <span class="text-xs text-slate-400 font-semibold">${studentMsgs.length} 則通訊</span>
           </div>
 
           <div class="space-y-2 mb-3.5 max-h-60 overflow-y-auto pr-1">
@@ -1838,7 +2082,6 @@
       }
     }
 
-    // 教師回覆留言
     function handleSendTeacherReply(e, studentId) {
       e.preventDefault();
       const inputEl = document.getElementById(`teacherReplyInput_${studentId}`);
@@ -1872,6 +2115,56 @@
       sendDataToGoogleSheets({
         action: "sendMessage",
         message: replyMsg
+      });
+    }
+
+    // ================= 後台行事曆管理 =================
+    function renderAdminEventsTable() {
+      const tbody = document.getElementById('adminEventsTableBody');
+      const badge = document.getElementById('eventCountBadge');
+      if (badge) badge.textContent = classEvents.length;
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+
+      if (classEvents.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 text-xs">目前尚未設定任何班級行事曆事件</td></tr>`;
+        return;
+      }
+
+      const sorted = [...classEvents].sort((a, b) => new Date(String(a.date).replace(/-/g, '/')) - new Date(String(b.date).replace(/-/g, '/')));
+
+      sorted.forEach(ev => {
+        const diff = getDaysDiff(ev.date);
+        let countdownText = "";
+        if (diff === 0) countdownText = `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded-md text-xs">🔥 今天截止</span>`;
+        else if (diff > 0) countdownText = `<span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md text-xs">倒數 ${diff} 天</span>`;
+        else countdownText = `<span class="bg-slate-100 text-slate-400 font-medium px-2 py-0.5 rounded-md text-xs">已結束</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-amber-50/40 transition";
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-mono font-bold text-slate-700">${formatCleanDate(ev.date)}</td>
+          <td class="py-3 px-4">${countdownText}</td>
+          <td class="py-3 px-4 font-bold text-slate-800">${ev.title}</td>
+          <td class="py-3 px-4">
+            <span class="text-xs px-2.5 py-1 rounded-full border ${getTagBadgeClass(ev.tag)} font-semibold">
+              ${ev.tag}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-xs text-slate-500 max-w-[200px] truncate">${ev.desc || '無'}</td>
+          <td class="py-3 px-4 text-right">
+            <div class="flex items-center justify-end space-x-1.5">
+              <button onclick="openEditEventModal('${ev.id}')" class="text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg text-xs font-medium" title="編輯事件">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteEventItem('${ev.id}')" class="text-rose-500 hover:bg-rose-50 p-1.5 rounded-lg text-xs font-medium" title="刪除事件">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
     }
 
@@ -1991,7 +2284,6 @@
         }
       }
 
-      // 班級幹部標籤
       const cardRoleEl = document.getElementById('cardStudentRole');
       if (cardRoleEl) {
         if (student.role && student.role.trim() !== '') {
@@ -2025,7 +2317,7 @@
 
       const progTextEl = document.getElementById('cardProgressText');
       const progBarEl = document.getElementById('cardProgressBar');
-      if (progTextEl) progTextEl.textContent = needed > 0 ? `距離下一階稱號還差 ${needed} 點` : `已達最高稱號榮譽！`;
+      if (progTextEl) progTextEl.textContent = needed > 0 ? `距離下一階段還差 ${needed} 點` : `已達最高稱號榮譽！`;
       if (progBarEl) progBarEl.style.width = `${percent}%`;
 
       const rewardListEl = document.getElementById('studentRewardList');
@@ -2531,423 +2823,4 @@
           cardAvatarDisplay = `<div class="w-10 h-10 mx-auto mb-1 rounded-full overflow-hidden border border-amber-200"><img src="${st.avatar}" class="w-full h-full object-cover"></div>`;
         }
 
-        const roleTagHtml = st.role ? `<span class="inline-block bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full mb-1 border border-amber-200">${st.role}</span>` : '';
-
-        card.innerHTML = `
-          <div class="w-full flex justify-between items-center text-xs font-bold text-slate-500 mb-2">
-            <span class="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-md font-bold">座號 ${String(st.seat).padStart(2,'0')}</span>
-            <span class="text-slate-400 font-mono">${st.id}</span>
-          </div>
-
-          ${cardAvatarDisplay}
-          ${roleTagHtml}
-          <h4 class="font-black text-slate-800 text-lg mb-1">${st.name}</h4>
-          <p class="text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md mb-2 truncate max-w-[180px] font-medium">${st.welcomeMessage || '🌻 快樂學習、天天進步！'}</p>
-          
-          <div id="${qrContainerId}" class="p-2 bg-white border border-amber-100 rounded-2xl shadow-inner flex items-center justify-center mb-3 min-h-[136px]"></div>
-          
-          <p class="text-[11px] font-bold text-amber-900">🌻 向日葵班班 · 掃碼查積分</p>
-          <p class="text-[9px] text-slate-400 font-mono truncate w-full px-2 mt-0.5">${studentUrl}</p>
-        `;
-        grid.appendChild(card);
-
-        setTimeout(() => {
-          try {
-            const container = document.getElementById(qrContainerId);
-            if (container && typeof QRCode !== 'undefined') {
-              container.innerHTML = '';
-              new QRCode(container, {
-                text: studentUrl,
-                width: 120,
-                height: 120,
-                colorDark: "#b45309",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.M
-              });
-            }
-          } catch (qrErr) {
-            console.warn("QR code render delayed:", qrErr);
-          }
-        }, 100);
-      });
-    }
-
-    function openAddStudentModal() {
-      const titleEl = document.getElementById('modalTitle');
-      const editIdEl = document.getElementById('editOriginalId');
-      const seatEl = document.getElementById('inputSeat');
-      const idEl = document.getElementById('inputId');
-      const nameEl = document.getElementById('inputName');
-      const roleEl = document.getElementById('inputRole');
-      const welcomeEl = document.getElementById('inputWelcomeMessage');
-      const avatarEl = document.getElementById('inputAvatar');
-      const ptsEl = document.getElementById('inputPoints');
-
-      if (titleEl) titleEl.textContent = "新增學生";
-      if (editIdEl) editIdEl.value = "";
-      if (seatEl) seatEl.value = students.length + 1;
-      if (idEl) idEl.value = `S${String(students.length + 1).padStart(3, '0')}`;
-      if (nameEl) nameEl.value = "";
-      if (roleEl) roleEl.value = "";
-      if (welcomeEl) welcomeEl.value = "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
-      if (avatarEl) avatarEl.value = "🌟";
-      if (ptsEl) ptsEl.value = "0";
-
-      const modal = document.getElementById('studentModal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function openEditStudentModal(id) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
-
-      const titleEl = document.getElementById('modalTitle');
-      const editIdEl = document.getElementById('editOriginalId');
-      const seatEl = document.getElementById('inputSeat');
-      const idEl = document.getElementById('inputId');
-      const nameEl = document.getElementById('inputName');
-      const roleEl = document.getElementById('inputRole');
-      const welcomeEl = document.getElementById('inputWelcomeMessage');
-      const avatarEl = document.getElementById('inputAvatar');
-      const ptsEl = document.getElementById('inputPoints');
-
-      if (titleEl) titleEl.textContent = "編輯學生資料";
-      if (editIdEl) editIdEl.value = student.id;
-      if (seatEl) seatEl.value = student.seat;
-      if (idEl) idEl.value = student.id;
-      if (nameEl) nameEl.value = student.name;
-      if (roleEl) roleEl.value = student.role || "";
-      if (welcomeEl) welcomeEl.value = student.welcomeMessage || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
-      if (avatarEl) avatarEl.value = student.avatar || "🌟";
-      if (ptsEl) ptsEl.value = student.points;
-
-      const modal = document.getElementById('studentModal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeStudentModal() {
-      const modal = document.getElementById('studentModal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function selectEmoji(emoji) {
-      const avatarInput = document.getElementById('inputAvatar');
-      if (avatarInput) avatarInput.value = emoji;
-    }
-
-    function setQuickRole(role) {
-      const roleInput = document.getElementById('inputRole');
-      if (roleInput) roleInput.value = role;
-    }
-
-    function saveStudent(e) {
-      e.preventDefault();
-      const origId = document.getElementById('editOriginalId').value;
-      const seat = parseInt(document.getElementById('inputSeat').value, 10);
-      const id = document.getElementById('inputId').value.trim();
-      const name = document.getElementById('inputName').value.trim();
-      const role = document.getElementById('inputRole').value.trim();
-      const welcomeMessage = document.getElementById('inputWelcomeMessage').value.trim() || "🌻 歡迎來到向日葵班班！今天也要像向日葵一樣充滿朝氣喔！";
-      const avatar = document.getElementById('inputAvatar').value.trim() || "🌟";
-      const points = parseInt(document.getElementById('inputPoints').value, 10) || 0;
-
-      if (!origId && students.some(s => s.id === id)) {
-        showToast("學號/代碼不可重複！", "error");
-        return;
-      }
-
-      if (origId) {
-        const index = students.findIndex(s => s.id === origId);
-        if (index !== -1) {
-          students[index].seat = seat;
-          students[index].id = id;
-          students[index].name = name;
-          students[index].role = role;
-          students[index].welcomeMessage = welcomeMessage;
-          students[index].avatar = avatar;
-          students[index].points = points;
-        }
-        localModifiedTracker[id + '_role'] = Date.now();
-        showToast(`已更新 ${name} 的資料`, "success");
-      } else {
-        students.push({
-          id,
-          seat,
-          name,
-          role,
-          avatar,
-          points,
-          welcomeMessage,
-          history: [{
-            time: new Date().toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
-            reason: "建立學生帳號",
-            delta: points
-          }]
-        });
-        showToast(`已新增學生 ${name}`, "success");
-      }
-
-      saveSystemData();
-      closeStudentModal();
-      refreshAllViews();
-
-      sendDataToGoogleSheets({
-        action: "saveStudent",
-        id: id,
-        seat: seat,
-        name: name,
-        role: role,
-        points: points,
-        avatar: avatar,
-        welcomeMessage: welcomeMessage
-      });
-    }
-
-    function deleteStudent(id) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
-
-      students = students.filter(s => s.id !== id);
-      if (currentStudentId === id && students.length > 0) {
-        currentStudentId = students[0].id;
-      }
-      saveSystemData();
-      refreshAllViews();
-      showToast(`學生 ${student.name} 已成功刪除`, "info");
-    }
-
-    function openPointModal(id) {
-      const student = students.find(s => s.id === id);
-      if (!student) return;
-
-      const idInput = document.getElementById('pointStudentId');
-      const nameSpan = document.getElementById('pointModalStudentName');
-      const ptsSpan = document.getElementById('pointModalCurrentPoints');
-      const changeInput = document.getElementById('pointChangeAmount');
-      const reasonInput = document.getElementById('pointReason');
-
-      if (idInput) idInput.value = student.id;
-      if (nameSpan) nameSpan.textContent = `${student.name} (#${student.seat})`;
-      if (ptsSpan) ptsSpan.textContent = student.points;
-      if (changeInput) changeInput.value = "";
-      if (reasonInput) reasonInput.value = "";
-
-      const modal = document.getElementById('pointModal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closePointModal() {
-      const modal = document.getElementById('pointModal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function setQuickReason(reason, amount) {
-      const reasonInput = document.getElementById('pointReason');
-      const amountInput = document.getElementById('pointChangeAmount');
-      if (reasonInput) reasonInput.value = reason;
-      if (amountInput) amountInput.value = amount;
-    }
-
-    function submitPointAdjustment(e) {
-      e.preventDefault();
-      const id = document.getElementById('pointStudentId').value;
-      const amount = parseInt(document.getElementById('pointChangeAmount').value, 10);
-      const reason = document.getElementById('pointReason').value.trim();
-
-      if (isNaN(amount) || !reason) {
-        showToast("請填寫有效的變更點數與原因", "error");
-        return;
-      }
-
-      quickAddPoints(id, amount, reason);
-      closePointModal();
-    }
-
-    // ================= 學生更換個人頭貼 / 上傳照片處理 =================
-    function openStudentAvatarModal() {
-      const student = students.find(s => 
-        String(s.id).toLowerCase() === String(currentStudentId).toLowerCase() || 
-        String(s.seat) === String(currentStudentId)
-      ) || students[0];
-
-      if (!student) return;
-      
-      tempSelectedAvatar = student.avatar || '🌟';
-      updateAvatarPreview(tempSelectedAvatar);
-      
-      const manualInput = document.getElementById('avatarManualInput');
-      if (manualInput) manualInput.value = '';
-      
-      const modal = document.getElementById('avatarModal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeStudentAvatarModal() {
-      const modal = document.getElementById('avatarModal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function updateAvatarPreview(val) {
-      const previewSpan = document.getElementById('avatarPreviewSpan');
-      if (!previewSpan) return;
-
-      if (val && (val.startsWith('data:image/') || val.startsWith('http://') || val.startsWith('https://'))) {
-        previewSpan.innerHTML = `<img src="${val}" alt="預覽" class="w-full h-full object-cover">`;
-      } else {
-        previewSpan.innerHTML = val || '🌟';
-      }
-    }
-
-    function setAvatarPreset(emoji) {
-      tempSelectedAvatar = emoji;
-      updateAvatarPreview(emoji);
-    }
-
-    function applyManualAvatarInput() {
-      const manualInput = document.getElementById('avatarManualInput');
-      const val = manualInput ? manualInput.value.trim() : '';
-      if (val) {
-        tempSelectedAvatar = val;
-        updateAvatarPreview(val);
-      }
-    }
-
-    function handleAvatarFileUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      if (!file.type.startsWith('image/')) {
-        showToast("請選擇圖片檔案！", "error");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          const size = 80;
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext('2d');
-
-          const minDim = Math.min(img.width, img.height);
-          const startX = (img.width - minDim) / 2;
-          const startY = (img.height - minDim) / 2;
-
-          ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, size, size);
-          
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.65);
-          tempSelectedAvatar = compressedDataUrl;
-          updateAvatarPreview(compressedDataUrl);
-          showToast("圖片已載入，點擊「確認儲存」即可完成更換！", "success");
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-      e.target.value = '';
-    }
-
-    async function saveSelectedAvatar() {
-      const student = students.find(s => 
-        String(s.id).toLowerCase() === String(currentStudentId).toLowerCase() || 
-        String(s.seat) === String(currentStudentId)
-      );
-      if (!student) return;
-
-      student.avatar = tempSelectedAvatar;
-      localModifiedTracker[student.id + '_avatar'] = Date.now();
-
-      saveSystemData();
-      renderStudentCard();
-      renderAdminTable();
-      renderQRCards();
-      closeStudentAvatarModal();
-      showToast("個人頭像已成功更新並保存！✨", "success");
-
-      sendDataToGoogleSheets({
-        action: "updateAvatar",
-        id: student.id,
-        seat: student.seat,
-        avatar: student.avatar
-      });
-    }
-
-    function exportData() {
-      const exportObject = {
-        students: students,
-        rewards: rewards,
-        events: classEvents,
-        adminPassword: adminPassword,
-        exportDate: new Date().toISOString()
-      };
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `class_points_backup_${new Date().toISOString().slice(0,10)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast("班級積分與獎勵資料已成功匯出備份！", "success");
-    }
-
-    function importData(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const parsed = JSON.parse(evt.target.result);
-          if (parsed.students && Array.isArray(parsed.students)) {
-            students = parsed.students;
-            if (parsed.rewards && Array.isArray(parsed.rewards)) rewards = parsed.rewards;
-            if (parsed.events && Array.isArray(parsed.events)) classEvents = parsed.events;
-            if (parsed.adminPassword) {
-              adminPassword = parsed.adminPassword;
-              hasCustomPassword = true;
-              localStorage.setItem('class_points_custom_pwd', adminPassword);
-            }
-          } else if (Array.isArray(parsed)) {
-            students = parsed;
-          }
-          currentStudentId = students[0]?.id || null;
-          saveSystemData();
-          refreshAllViews();
-          showToast("成功匯入學生積分、行事曆與獎勵資料！", "success");
-        } catch (err) {
-          showToast("檔案讀取失敗，非有效 JSON 檔案", "error");
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    }
-
-    function showToast(msg, type = "success") {
-      const toast = document.getElementById('toast');
-      const toastMsg = document.getElementById('toastMsg');
-      const toastIcon = document.getElementById('toastIcon');
-
-      if (!toast || !toastMsg || !toastIcon) return;
-
-      toastMsg.textContent = msg;
-
-      if (type === "success") {
-        toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg flex-shrink-0";
-      } else if (type === "error") {
-        toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-400 text-lg flex-shrink-0";
-      } else {
-        toastIcon.className = "fa-solid fa-circle-info text-sky-400 text-lg flex-shrink-0";
-      }
-
-      toast.classList.remove('translate-y-24', 'opacity-0');
-      toast.classList.add('translate-y-0', 'opacity-100');
-
-      setTimeout(() => {
-        toast.classList.remove('translate-y-0', 'opacity-100');
-        toast.classList.add('translate-y-24', 'opacity-0');
-      }, 3500);
-    }
-  </script>
-</body>
-</html>
+        const roleTagHtml = st.role ? `<span class="inline-
